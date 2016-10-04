@@ -8,7 +8,10 @@ import Arm
 #Cartesian Space to Joint Space Libraries
 import math
 import numpy as np
-import scipy.optimize
+
+#Arduino Serial Communication
+import serial
+ser = serial.Serial('/dev/ttyACM0', 115200)
 
 x = 0
 y = 0
@@ -16,6 +19,7 @@ z = 0
 a = 0
 b = 0
 c = 0
+angles = [math.pi/4, math.pi/4, 0]
 
 #=================================================================
 
@@ -33,11 +37,15 @@ try:
                 a = rot[0]
                 b = rot[1]
                 c = rot[2]
-            angles = Arm.Arm3Link(L = np.array([255,255,1])).inv_kin(xy = (y, z))
-            print angles[0]
-            print angles [1]
-        
-        
+                yrad = y*180/np.pi
+                zrad = z*180/np.pi
+                angles = Arm.Arm3Link(q = [angles[0], angles[1], 0],L = np.array([255,255,1])).inv_kin(xy = (y, z))
+                shoulder = ((int(angles[0]*180/math.pi) * 10**3) / 10.0**3)
+                elbow = ((int(angles[1]*180/math.pi) * 10**3) / 10.0**3)
+            transmission = [shoulder, elbow]
+            transstring = str(transmission).strip('[]')
+            print transstring
+            ser.write(transstring)
 except KeyboardInterrupt:
     print "Whoa there"
 

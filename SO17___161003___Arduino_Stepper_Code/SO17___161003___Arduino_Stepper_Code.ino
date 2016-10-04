@@ -18,7 +18,11 @@ void setup() {
 
 void loop() {
   if (Serial.available()) {
-    char ch = Serial.read();
+    shoulder = Serial.readStringUntil(',');
+    Serial.read();
+    elbow = Serial.readStringUntil(',');
+    Serial.print(shoulder);
+    Serial.print(elbow);
     if ((ch >= '0') && (ch <= '6')) {
       int axis = ch -'0';
       if (axis == 0) {
