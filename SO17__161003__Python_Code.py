@@ -10,6 +10,13 @@ import math
 import numpy as np
 import scipy.optimize
 
+x = 0
+y = 0
+z = 0
+a = 0
+b = 0
+c = 0
+
 #=================================================================
 
 #3D Mouse Input loop
@@ -26,9 +33,9 @@ try:
                 a = rot[0]
                 b = rot[1]
                 c = rot[2]
-        arm = Arm.Arm3Link(L = np.array([255,255,1]))
-        angles = inv_kin(xy = (y, z))
-        print angles
+            angles = Arm.Arm3Link(L = np.array([255,255,1])).inv_kin(xy = (y, z))
+            print angles[0]
+            print angles [1]
         
         
 except KeyboardInterrupt:
