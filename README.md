@@ -16,6 +16,7 @@ Download and run rufus, then select the DD image flashing option with the unzipp
 ###On Raspberry Pi:
 
 Boot with SD card, then run
+
 ```
 sudo raspi-config
 ```
@@ -30,4 +31,8 @@ sudo service spacenavd start
 cd Desktop
 git clone https://github.com/davecutting/WM-Roboarm.git
 sudo pip install ikpy
+sudo pip install minimalmodbus
 ```
+
+Download the Modbus-Master-Slave library and unzip it to pi/sketchbook/libraries
+
