@@ -40,8 +40,8 @@ class Arm3Link:
         # arm segment lengths
         self.L = np.array([1, 1, 1]) if L is None else L
 
-        self.max_angles = [math.pi/2.0, math.pi, math.pi/4]
-        self.min_angles = [0, 0, -math.pi/4]
+        self.max_angles = [math.radians(0), math.radians(-30), 0]
+        self.min_angles = [math.radians(150), math.radians(-155), 0]
 
     def get_xy(self, q=None):
         """Returns the corresponding hand xy coordinates for
@@ -213,6 +213,7 @@ def test():
                 print('Actual hand position: ', actual_xy)
                 print('Error: ', error)
                 print('-------------------------')
+
             count += 1
 
     print('\n---------Results---------')
