@@ -21,17 +21,14 @@ Boot with SD card, then run
 sudo raspi-config
 ```
 
-Expand the filesystem and enable the camera
+Expand the filesystem and enable the camera, then reboot and run the following code:
 
 ```
-sudo reboot
 sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose libspnav-dev libspnav0 spacenavd arduino git
-sudo pip install spnav
-sudo service spacenavd start
 cd Desktop
 git clone https://github.com/davecutting/WM-Roboarm.git
-sudo pip install ikpy
-sudo pip install minimalmodbus
+sudo pip install ikpy minimalmodbus spnav
+sudo service spacenavd start
 ```
 
 Download the Modbus-Master-Slave library and unzip it to pi/sketchbook/libraries
