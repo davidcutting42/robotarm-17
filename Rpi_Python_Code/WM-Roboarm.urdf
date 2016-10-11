@@ -1,22 +1,39 @@
 <robot name="WM-Roboarm">
-	<link name="link1" />
-	<link name="link2" />
-	<link name="link3" />
+	<link name="base"/>
+	<link name="body"/>
+	<link name="upperarm"/>
+	<link name="lowerarm"/>
+	<link name="hand"/>
 	
-	<joint name="joint1" type="continuous"/>
-		<parent link="link1"/>
-		<child link="link2"/>
-		<origin xyz="0 0 0" rpy="0 0 0" />
-		<axis xyz="0 0 0" />
+	<joint name="swivel" type="revolute"/>
+		<parent link="base"/>
+		<child link="body"/>
+		<origin xyz="0 0 173" rpy="0 0 0" />
+		<axis xyz="0 0 1" />
+		<limit effort="1000.0" lower="0.785" upper="4.926" velocity="0.5"/>
+	</joint>
+
+	<joint name="shoulder" type="revolute"/>
+		<parent link="body"/>
+		<child link="upperarm"/>
+		<origin xyz="10 45 50" rpy="0 0 0" />
+		<axis xyz="1 0 0" />
 		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
 	</joint>
 	
-	<joint name="joint2" type="continuous"/>
-		<parent link="link2"/>
-		<child link="link3"/>
+	<joint name="elbow" type="revolute"/>
+		<parent link="upperarm"/>
+		<child link="lowerarm"/>
 		<origin xyz="0 0 255" rpy="0 0 0" />
-		<axis xyz="0 0 0" />
+		<axis xyz="1 0 0" />
 		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
 	</joint>
+
+	<joint name="wrist" type="fixed"/>
+		<parent link="lowerarm"/>
+		<child link="hand"/>
+		<origin xyz="0 255 30" rpy="0 0 0" />
+	</joint>
+
 </robot>
 	
