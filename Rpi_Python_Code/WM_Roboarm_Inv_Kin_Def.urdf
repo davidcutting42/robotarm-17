@@ -5,7 +5,7 @@
 	<link name="lowerarm"/>
 	<link name="hand"/>
 	
-	<joint name="swivel" type="revolute"/>
+	<joint name="swivel" type="revolute">
 		<parent link="base"/>
 		<child link="body"/>
 		<origin xyz="0 0 173" rpy="0 0 0" />
@@ -13,7 +13,7 @@
 		<limit effort="1000.0" lower="0.785" upper="4.926" velocity="0.5"/>
 	</joint>
 
-	<joint name="shoulder" type="revolute"/>
+	<joint name="shoulder" type="revolute">
 		<parent link="body"/>
 		<child link="upperarm"/>
 		<origin xyz="10 45 50" rpy="0 0 0" />
@@ -21,7 +21,7 @@
 		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
 	</joint>
 	
-	<joint name="elbow" type="revolute"/>
+	<joint name="elbow" type="revolute">
 		<parent link="upperarm"/>
 		<child link="lowerarm"/>
 		<origin xyz="0 0 255" rpy="0 0 0" />
@@ -29,7 +29,7 @@
 		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
 	</joint>
 
-	<joint name="wrist" type="fixed"/>
+	<joint name="wrist" type="fixed">
 		<parent link="lowerarm"/>
 		<child link="hand"/>
 		<origin xyz="0 255 30" rpy="0 0 0" />
