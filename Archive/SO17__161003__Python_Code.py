@@ -85,8 +85,8 @@ try:
                 Elbow_Set_Angle = (degrees(angles[1]))
                 
                 #Write angles to arduino
-                arduino.write_register(0, Shoulder_Set_Angle, 0)
-                arduino.write_register(1, Elbow_Set_Angle, 0)
+                arduino.write_register(0, math.degrees(Shoulder_Set_Angle)*10, 0)
+                arduino.write_register(1, math.degrees(Elbow_Set_Angle)*10, 0)
                 spnav_remove_events(SPNAV_EVENT_MOTION)
 except KeyboardInterrupt:
     print "Whoa there"

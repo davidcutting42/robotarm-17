@@ -10,7 +10,7 @@
 		<child link="body"/>
 		<origin xyz="0 0 173" rpy="0 0 0" />
 		<axis xyz="0 0 1" />
-		<limit effort="1000.0" lower="0.785" upper="4.926" velocity="0.5"/>
+		<limit effort="1000.0" lower="0" upper="3" velocity="0.5"/>
 	</joint>
 
 	<joint name="shoulder" type="revolute">
@@ -18,7 +18,7 @@
 		<child link="upperarm"/>
 		<origin xyz="10 45 50" rpy="0 0 0" />
 		<axis xyz="1 0 0" />
-		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
+		<limit effort="1000.0" lower="0.0" upper="3" velocity="0.5"/>
 	</joint>
 	
 	<joint name="elbow" type="revolute">
@@ -26,7 +26,7 @@
 		<child link="lowerarm"/>
 		<origin xyz="0 0 255" rpy="0 0 0" />
 		<axis xyz="1 0 0" />
-		<limit effort="1000.0" lower="0.0" upper="0.548" velocity="0.5"/>
+		<limit effort="1000.0" lower="0.0" upper="3" velocity="0.5"/>
 	</joint>
 
 	<joint name="wrist" type="fixed">
