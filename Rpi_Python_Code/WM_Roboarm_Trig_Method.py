@@ -7,8 +7,10 @@ import minimalmodbus
 
 try:
     arduino = minimalmodbus.Instrument('/dev/ttyACM1', 1) # port name, slave address (in decimal)
+#except:
+  # arduino = minimalmodbus.Instrument('/dev/ttyACM2', 1) # port name, slave address (in decimal)
 except:
-    arduino = minimalmodbus.Instrument('/dev/ttyACM2', 1) # port name, slave address (in decimal)
+    arduino = minimalmodbus.Instrument('/dev/ttyACM0', 1) # port name, slave address (in decimal)
 
 y = 180.0
 z = -70.0
@@ -24,6 +26,8 @@ time.sleep(2)
 
 mouse_scal = 10.0
 mouse_scal2 = 1000.0
+
+elim = 0
 
 try:
     while True:
@@ -45,7 +49,7 @@ try:
                 #Scale mouse input to correct size
                 z += (my/mouse_scal)
                 y += (mz/mouse_scal)
-                gamma += (-mb/mouse_scal2)
+                gamma = (mb+350)
 
                 if (y < 50):
                     y = 50.0
@@ -55,10 +59,6 @@ try:
                     y = 400.0
                 if (z < -400):
                     z = -400.0
-                if (gamma > math.pi/2):
-                    gamma = math.pi/2
-                if (gamma < -math.pi/2):
-                    gamma = -(math.pi/2)
                 
                 L = math.sqrt(math.pow(y,2) + math.pow(z,2))
                 
@@ -79,19 +79,19 @@ try:
                 rawshoulder = arduino.read_register(4, 0)
                 rawelbow = arduino.read_register(5, 0)
                 
-                print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow)
+                print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
 
-                #try:
-                arduino.write_register(0, int(math.degrees(alpha)*10), 0)
+                arduino.write_register(0, int((math.degrees(alpha)-45)*10), 0)
                 arduino.write_register(1, int(math.degrees(beta)*10), 0)
-                #arduino.write_register(2, math.degrees(gamma), 1)
-                #arduino.write_register(2, int(math.degrees(0)*10), 0)
-                #except ValueError:
-                #    print "Go back to Algebra 1"
-                #except:
-                #    print "error"
-                
-                spnav_remove_events(SPNAV_EVENT_MOTION)          
+                arduino.write_register(6, gamma, 0)
+
+                spnav_remove_events(SPNAV_EVENT_MOTION)
+
+                elim = 0;
+        if (event == None):
+            elim = elim + 1
+        if (elim > 400):
+            arduino.write_register(6, 350, 0)
 except KeyboardInterrupt:
         print "Whoa there"
         
