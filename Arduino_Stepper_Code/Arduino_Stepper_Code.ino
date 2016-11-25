@@ -23,7 +23,7 @@
 
 // Data array for Modbus network sharing
 uint16_t au16data[10] = {
-  900, 450, 0, 0, 0, 0, 350, 0, 0, 0 };
+  1800, 500, 0, 0, 0, 0, 350, 0, 0, 0 };
 
 // Modbus object declaration
 Modbus slave(1,0,0); // this is slave @1 and RS-232 or USB-FTDI
@@ -92,6 +92,7 @@ void setup() {
   pinMode(elbowPot, INPUT);
   pinMode(slidePot, INPUT); 
   
+  // Set to 8 microsteps/step  
   digitalWrite(stpselect0, HIGH);
   digitalWrite(stpselect1, LOW);
   digitalWrite(stpselect2, LOW);
@@ -112,8 +113,8 @@ void loop() {
   shoulderPotVal = analogRead(shoulderPot);
   
   // Map arm potentiometer readings to corresponding degree measurements
-  float elbowAngle = map(elbowPotVal,991,962,900,450);
-  float shoulderAngle = map(shoulderPotVal,22,95,900,0);
+  float elbowAngle = map(elbowPotVal,1005,970,900,450);
+  float shoulderAngle = map(shoulderPotVal,50,147,1800,900);
   shoulderAngle /= 10;
   elbowAngle /= 10;
   
@@ -153,8 +154,8 @@ void loop() {
           digitalWrite(xdir, HIGH);
           digitalWrite(xstp, LOW);
           xdelay =  50/xerr;
-          if (xdelay < 1){
-            xdelay = 1;
+          if (xdelay < 2){
+            xdelay = 2;
           }
           xclk = millis();
           xstate = 1;
@@ -180,8 +181,8 @@ void loop() {
           digitalWrite(xdir, LOW);
           digitalWrite(xstp, LOW);
           xdelay = 50/xerr;
-          if (xdelay < 1){
-            xdelay = 1;
+          if (xdelay < 2){
+            xdelay = 2;
           }
           xclk = millis();
           xstate = 1;
@@ -221,8 +222,8 @@ void loop() {
           digitalWrite(ydir, LOW);
           digitalWrite(ystp, LOW);
           ydelay = 50/yerr;
-          if (ydelay < 1){
-            ydelay = 1;
+          if (ydelay < 2){
+            ydelay = 2;
            }
           yclk = millis();
           ystate = 1;
@@ -248,8 +249,8 @@ void loop() {
           digitalWrite(ydir, HIGH);
           digitalWrite(ystp, LOW);
           ydelay = 50/yerr;
-            if (ydelay < 1){
-            ydelay = 1;
+            if (ydelay < 2){
+            ydelay = 2;
           }
           yclk = millis();
           ystate = 1;
@@ -275,9 +276,9 @@ void loop() {
   /////////////////////////////////////////////////////////////////////
   //////////////////BASE MOTOR CONTROL/////////////////////////////////
   /////////////////////////////////////////////////////////////////////
-  gdelay = 350/(abs(gamma))*4000;
-  if (gdelay < 1){
-    gdelay = 1;
+  gdelay = 350/(abs(gamma))*1000;
+  if (gdelay < 2000){
+    gdelay = 2000;
   }
   
   if (gamma > 0) { 
