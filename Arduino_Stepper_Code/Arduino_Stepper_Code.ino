@@ -94,8 +94,10 @@ void setup() {
   
   // Set to 8 microsteps/step  
   digitalWrite(stpselect0, HIGH);
-  digitalWrite(stpselect1, LOW);
+  digitalWrite(stpselect1, HIGH);
   digitalWrite(stpselect2, LOW);
+  
+  analogReference(INTERNAL2V56);
   
   // Begin the Modbus communication as a slave
   slave.begin( 19200 );
@@ -113,8 +115,8 @@ void loop() {
   shoulderPotVal = analogRead(shoulderPot);
   
   // Map arm potentiometer readings to corresponding degree measurements
-  float elbowAngle = map(elbowPotVal,1005,970,900,450);
-  float shoulderAngle = map(shoulderPotVal,50,147,1800,900);
+  float elbowAngle = map(elbowPotVal,7,131,1500,300);
+  float shoulderAngle = map(shoulderPotVal,88,898,2250,900);
   shoulderAngle /= 10;
   elbowAngle /= 10;
   
