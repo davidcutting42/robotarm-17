@@ -3,7 +3,7 @@ This repository is the main repository for David Cutting's Ward Melville Science
 
 (C) 2016-2017 David Cutting
 
-## Installation instructions
+## Installation instructions (OUTDATED AND NEED TO BE UPDATED ONCE CODE IS STABLE)
 ###On Windows Desktop:
 Download Raspbian Image from Rpi Website
 
