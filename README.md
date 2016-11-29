@@ -3,6 +3,29 @@ This repository is the main repository for David Cutting's Ward Melville Science
 
 (C) 2016-2017 David Cutting
 
+## Coding/Debug Mode
+After the robot has completed its boot process, press Ctrl+Alt+F1 to exit the GUI in the piTFT screen. The GUI will freeze on the piTFT and the terminal will show up on the HDMI screen. Start the GUI on the HDMI monitor:
+
+
+startx -- -layout HDMI
+
+
+You should be presented with a desktop similar (albeit not the same size as) the one on the piTFT. Congrats!
+
+
+Tutorial on getting it set up: 
+https://www.raspberrypi.org/forums/viewtopic.php?f=44&t=91764&start=25
+
+Possible Problems
+If you get any kind of error related to authority to lock the .Xauthority file, run this command to give ownership of all pi files to the pi user.
+
+```	
+sudo chown pi:pi /home/pi
+```
+
+Make sure you do not insert “sudo” in front of the startx command. Doing so will result in you ending up in the root desktop, not the pi desktop.
+
+
 ## Installation instructions (OUTDATED AND NEED TO BE UPDATED ONCE STABLE)
 ###On Windows Desktop:
 Download Raspbian Image from Rpi Website
