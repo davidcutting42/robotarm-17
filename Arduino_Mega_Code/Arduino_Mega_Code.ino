@@ -20,6 +20,8 @@
 // Software libraries for Modbus communication
 #include <SoftwareSerial.h>
 #include <ModbusRtu.h>
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 
 // Data array for Modbus network sharing
 uint16_t au16data[10] = {
@@ -36,9 +38,9 @@ const int ystp = 4;
 const int gdir = 28;
 const int gstp = 6;
 
-const int rled = 26;
-const int gled = 4;
-const int bled = 27;
+const int rled = 7;
+const int gled = 8;
+const int bled = 9;
 
 const int stpselect0 = 32;
 const int stpselect1 = 33;
@@ -103,6 +105,10 @@ void setup() {
   digitalWrite(stpselect2, LOW);
   
   analogReference(INTERNAL2V56);
+  
+  digitalWrite(rled, HIGH);
+  digitalWrite(gled, HIGH);
+  digitalWrite(bled, HIGH);
   
   // Begin the Modbus communication as a slave
   slave.begin( 19200 );
