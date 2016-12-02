@@ -95,4 +95,3 @@ except KeyboardInterrupt:
         print "Whoa there"
         
 spnav_close() 
-

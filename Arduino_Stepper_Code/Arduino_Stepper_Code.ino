@@ -61,14 +61,19 @@ int xstate = 0;
 int ystate = 0;
 int gstate = 0;
 
-int xclk = 0;
-int yclk = 0;
+unsigned long xclk = 0;
+unsigned long yclk = 0;
 unsigned long gclk = 0;
 
 float xdelay = 0;
 float ydelay = 0;
 unsigned long gdelay = 0;
 int a = 1;
+
+int shouldergain = 5;
+int elbowgain = 5;
+
+int minstep = 250;
 
 void setup() {
   // Set stepper pin types
@@ -115,8 +120,8 @@ void loop() {
   shoulderPotVal = analogRead(shoulderPot);
   
   // Map arm potentiometer readings to corresponding degree measurements
-  float elbowAngle = map(elbowPotVal,7,131,1500,300);
-  float shoulderAngle = map(shoulderPotVal,88,898,2250,900);
+  float elbowAngle = (-0.8859 * elbowPotVal + 143.08)*10;
+  float shoulderAngle = (1157.8 * pow(shoulderPotVal, -0.37))*10;
   shoulderAngle /= 10;
   elbowAngle /= 10;
   
@@ -144,7 +149,7 @@ void loop() {
   
   float xerr = abs(xang-shoulderAngle);
   
-  if(xerr < 5) {
+  if(xerr < 1) {
     xerr = 0;
     xstate = 0;
   }
@@ -155,22 +160,22 @@ void loop() {
         case 0:
           digitalWrite(xdir, HIGH);
           digitalWrite(xstp, LOW);
-          xdelay =  50/xerr;
-          if (xdelay < 2){
-            xdelay = 2;
+          xdelay =  shouldergain/xerr*1000;
+          if (xdelay < minstep){
+            xdelay = minstep;
           }
-          xclk = millis();
+          xclk = micros();
           xstate = 1;
           break;
         case 1:
-          if (millis() >= xclk+xdelay) {
+          if (micros() >= xclk+xdelay) {
             digitalWrite(xstp, HIGH);
-            xclk = millis();
+            xclk = micros();
             xstate = 2;
           }
           break;
         case 2:
-          if (millis() >= xclk+xdelay) {
+          if (micros() >= xclk+xdelay) {
             digitalWrite(xstp, LOW);
             xstate = 0;
           }
@@ -182,22 +187,22 @@ void loop() {
         case 0:
           digitalWrite(xdir, LOW);
           digitalWrite(xstp, LOW);
-          xdelay = 50/xerr;
-          if (xdelay < 2){
-            xdelay = 2;
+          xdelay = shouldergain/xerr*1000;
+          if (xdelay < minstep){
+            xdelay = minstep;
           }
-          xclk = millis();
+          xclk = micros();
           xstate = 1;
           break;
         case 1:
-          if (millis() >= xclk+xdelay) {
+          if (micros() >= xclk+xdelay) {
             digitalWrite(xstp, HIGH);
-            xclk = millis();
+            xclk = micros();
             xstate = 2;
           }
           break;
         case 2:
-          if (millis() >= xclk+xdelay) {
+          if (micros() >= xclk+xdelay) {
             digitalWrite(xstp, LOW);
             xstate = 0;
           }
@@ -212,7 +217,7 @@ void loop() {
   
   float yerr = abs(yang-elbowAngle);
   
-  if(yerr < 5) {
+  if(yerr < 3) {
     yerr = 0;
     ystate = 0;
   }
@@ -223,22 +228,22 @@ void loop() {
         case 0:
           digitalWrite(ydir, LOW);
           digitalWrite(ystp, LOW);
-          ydelay = 50/yerr;
-          if (ydelay < 2){
-            ydelay = 2;
+          ydelay = elbowgain/yerr*1000;
+          if (ydelay < minstep){
+            ydelay = minstep;
            }
-          yclk = millis();
+          yclk = micros();
           ystate = 1;
           break;
         case 1:
-          if (millis() >= yclk+ydelay) {
+          if (micros() >= yclk+ydelay) {
             digitalWrite(ystp, HIGH);
-            yclk = millis();
+            yclk = micros();
             ystate = 2;
           }
           break;
         case 2:
-          if (millis() >= yclk+ydelay) {
+          if (micros() >= yclk+ydelay) {
             digitalWrite(ystp, LOW);
             ystate = 0;
           }
@@ -250,22 +255,22 @@ void loop() {
         case 0:
           digitalWrite(ydir, HIGH);
           digitalWrite(ystp, LOW);
-          ydelay = 50/yerr;
-            if (ydelay < 2){
-            ydelay = 2;
+          ydelay = elbowgain/yerr*1000;
+            if (ydelay < minstep){
+            ydelay = minstep;
           }
-          yclk = millis();
+          yclk = micros();
           ystate = 1;
           break;
         case 1:
-          if (millis() >= yclk+ydelay) {
+          if (micros() >= yclk+ydelay) {
             digitalWrite(ystp, HIGH);
-            yclk = millis();
+            yclk = micros();
             ystate = 2;
           }
           break;
         case 2:
-          if (millis() >= yclk+ydelay) {
+          if (micros() >= yclk+ydelay) {
             digitalWrite(ystp, LOW);
             ystate = 0;
           }
