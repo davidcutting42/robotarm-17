@@ -6,9 +6,9 @@ This repository is the main repository for David Cutting's Ward Melville Science
 ## Coding/Debug Mode
 After the robot has completed its boot process, press Ctrl+Alt+F1 to exit the GUI in the piTFT screen. The GUI will freeze on the piTFT and the terminal will show up on the HDMI screen. Start the GUI on the HDMI monitor:
 
-
+```
 startx -- -layout HDMI
-
+```
 
 You should be presented with a desktop similar (albeit not the same size as) the one on the piTFT. Congrats!
 
@@ -23,7 +23,7 @@ If you get any kind of error related to authority to lock the .Xauthority file, 
 sudo chown pi:pi /home/pi
 ```
 
-Make sure you do not insert “sudo” in front of the startx command. Doing so will result in you ending up in the root desktop, not the pi desktop.
+Make sure you do not insert “sudo” in front of the startx command. Doing so will result in you ending up in the root desktop, not the pi desktop. And it will screw up some other stuff too.
 
 
 ## Installation instructions (OUTDATED AND NEED TO BE UPDATED ONCE STABLE)
@@ -47,7 +47,7 @@ sudo raspi-config
 Expand the filesystem and enable the camera, then reboot and run the following code:
 
 ```
-sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose libspnav-dev libspnav0 spacenavd arduino git
+sudo apt-get install python-numpy libspnav-dev libspnav0 spacenavd arduino git
 cd Desktop
 git clone https://github.com/davecutting/WM-Roboarm.git
 sudo pip install ikpy minimalmodbus spnav
