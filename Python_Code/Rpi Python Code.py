@@ -13,12 +13,18 @@
 #   10              --                  Master          Reserved for additional servo control   
 #   11              --                  Master          Reserved for additional servo control
 
+# Laptop Modbus Register Table
+# Register:     Register Name:      Source:         Description:
+#   0               side                Slave           Penny side (0=empty, 1=heads, 2=tails)
+
 from Tkinter import *
 import math
 import numpy as np
 from spnav import *
 import time
 import minimalmodbus
+
+lapptop = minimalmodbus.Instrument('192.168.5.2', 1) # port name, slave address (in decimal)
 
 #Find the serial port for the Arduino Mega
 try:
@@ -231,8 +237,11 @@ def updateSteppers(): #Function for stepper control and spacenav input
                 rawshoulder = arduino.read_register(4, 0)
                 rawelbow = arduino.read_register(5, 0)
 
+                side = laptop.read_register(0, 0)
+                print side
+
                 # Print targets, current positions, etc.
-                print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
+                #print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
 
                 # Write joint space targets to arduino
                 arduino.write_register(0, int(math.degrees(alpha)*10), 0)
