@@ -23,6 +23,25 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
+//PWM Driver Object
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+
+#define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+#define BSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+#define CSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define CSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+#define DSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define DSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define DSERVOCENTER  (DSERVOMAX-DSERVOMIN)/2)
+
+// our servo # counter
+uint8_t servonum = 0;
+
 // Data array for Modbus network sharing
 uint16_t au16data[10] = {
   1800, 500, 0, 0, 0, 0, 350, 0, 0, 0 };
@@ -77,6 +96,18 @@ int elbowgain = 5;
 
 int minstep = 250;
 
+int servoapulse = 0;
+int servobpulse = 0;
+int servocpulse = 0;
+int servodpulse = DSERVOMIN;
+
+int servoaangle = 90;
+int servobangle = 90;
+int servocangle = 90;
+
+int side = 0;
+int sidearchive = 0;
+
 void setup() {
   // Set stepper pin types
   pinMode(xdir, OUTPUT);
@@ -112,9 +143,26 @@ void setup() {
   
   // Begin the Modbus communication as a slave
   slave.begin( 19200 );
+  
+  pwm.begin();
+  
+  pwm.setPWMFreq(60);
+}
+
+void setServoPulse(uint8_t n, double pulse) {
+  double pulselength;
+  
+  pulselength = 1000000;   // 1,000,000 us per second
+  pulselength /= 60;   // 60 Hz
+  pulselength /= 4096;  // 12 bits of resolution
+  pulse *= 1000;
+  pulse /= pulselength;
+  pwm.setPWM(n, 0, pulse);
 }
 
 void loop() {
+  sidearchive = side;
+  
   if (a == 1) {
     a = 0;
     delay(2000);
@@ -145,7 +193,30 @@ void loop() {
   gamma = au16data[6];
   gamma -= 350;
   
+  // Store servo angles and penny side
+  servoaangle = au16data[7];
+  servobangle = au16data[8];
+  servocangle = au16data[8];
+  side = au16data[11];
   
+  if (side != sidearchive) {
+    pwm.setPWM(3, 0, (DSERVOCENTER);
+    delay(1); 
+    if (side == 1) {
+      pwm.setPWM(3, 0, DSERVOMIN);
+    }
+    if (side == 2) {
+      pwm.setPWM(3, 0, DSERVOMAX);
+    }
+  }
+  
+  servoapulse = map(servoaangle, 0, 180, ASERVOMIN, ASERVOMAX);
+  servobpulse = map(servoaangle, 0, 180, BSERVOMIN, BSERVOMAX);
+  servocpulse = map(servoaangle, 0, 180, CSERVOMIN, CSERVOMAX);
+  
+  pwm.setPWM(0, 0, servoapulse);
+  pwm.setPWM(1, 0, servobpulse);
+  pwm.setPWM(2, 0, servocpulse);
   
   
   /////////////////////////////////////////////////////////////////////

@@ -7,11 +7,11 @@
 #   4               rawshoulder         Slave           Current analogRead value of Shoulder (debug only)
 #   5               rawelbow            Slave           Current analogRead value of Elbow (debug only)
 #   6               gamma               Master          Rotation of 3D mouse about z axis
-#   7               servo1pos           Master          Target angle of Servo A
-#   8               servo2pos           Master          Target angle of Servo B
-#   9               servo3pos           Master          Target angle of Servo C
+#   7               servoapos           Master          Target angle of Servo A
+#   8               servobpos           Master          Target angle of Servo B
+#   9               servocpos           Master          Target angle of Servo C
 #   10              --                  Master          Reserved for additional servo control   
-#   11              --                  Master          Reserved for additional servo control
+#   11              side                Master          Penny side (0=empty, 1=heads, 2=tails)
 
 # Laptop Modbus Register Table
 # Register:     Register Name:      Source:         Description:
@@ -24,7 +24,7 @@ from spnav import *
 import time
 import minimalmodbus
 
-lapptop = minimalmodbus.Instrument('192.168.5.2', 1) # port name, slave address (in decimal)
+#lapptop = minimalmodbus.Instrument('192.168.5.2', 1) # port name, slave address (in decimal)
 
 #Find the serial port for the Arduino Mega
 try:
@@ -237,11 +237,11 @@ def updateSteppers(): #Function for stepper control and spacenav input
                 rawshoulder = arduino.read_register(4, 0)
                 rawelbow = arduino.read_register(5, 0)
 
-                side = laptop.read_register(0, 0)
-                print side
+                #side = laptop.read_register(0, 0)
+                #print side
 
                 # Print targets, current positions, etc.
-                #print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
+                print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
 
                 # Write joint space targets to arduino
                 arduino.write_register(0, int(math.degrees(alpha)*10), 0)
