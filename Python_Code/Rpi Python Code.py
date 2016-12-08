@@ -103,10 +103,10 @@ def servoCright():
     print "this is a test"
 
 #Servo A button/label initialization and configuration
-servoalabel = Label(root, text="Servo 1")
-servoaleft = Button(root, text="<<", command=servoAleft)
+servoalabel = Label(root, text="Scoop")
+servoaleft = Button(root, text="<<", command=servoAleft, height=3, width=8)
 servoaangle = Label(root, text=servo1pos)
-servoaright = Button(root, text=">>", command=servoAright)
+servoaright = Button(root, text=">>", command=servoAright, height=3, width=8)
 #Servo A control object location definitions using grids.
 servoalabel.grid(row=0, column=0)
 servoaleft.grid(row=0, column=1)
@@ -114,10 +114,10 @@ servoaangle.grid(row=0, column=2)
 servoaright.grid(row=0, column=3)
 
 #Servo B button/label initialization and configuration
-servoblabel = Label(root, text="Servo 2")
-servobleft = Button(root, text="<<", command=servoBleft)
+servoblabel = Label(root, text="Lift")
+servobleft = Button(root, text="<<", command=servoBleft, height=3, width=8)
 servobangle = Label(root, text=servo2pos)
-servobright = Button(root, text=">>", command=servoBright)
+servobright = Button(root, text=">>", command=servoBright, height=3, width=8)
 #Servo B control object location definitions using grids.
 servoblabel.grid(row=1, column=0)
 servobleft.grid(row=1, column=1)
@@ -125,10 +125,10 @@ servobangle.grid(row=1, column=2)
 servobright.grid(row=1, column=3)
 
 #Servo C button/label initialization and configuration
-servoclabel = Label(root, text="Servo 3")
-servocleft = Button(root, text="<<", command=servoCleft)
+servoclabel = Label(root, text="Flip")
+servocleft = Button(root, text="<<", command=servoCleft, height=3, width=8)
 servocangle = Label(root, text=servo3pos)
-servocright = Button(root, text=">>", command=servoCright)
+servocright = Button(root, text=">>", command=servoCright, height=3, width=8)
 #Servo C control object location definitions using grids.
 servoclabel.grid(row=3, column=0)
 servocleft.grid(row=3, column=1)
