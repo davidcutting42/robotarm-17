@@ -74,32 +74,33 @@ servo3pos=90
 #Functions for modifying servo A angle
 def servoAleft():
     global servo1pos
-    servo1pos -= 5
+    servo1pos -= 90
     updateServos()
 def servoAright():
     global servo1pos
-    servo1pos += 5
+    servo1pos += 90
     updateServos()
     
 #Functions for modifying servo B angle    
 def servoBleft():
     global servo2pos
-    servo2pos -= 5
+    servo2pos -= 90
     updateServos()
 def servoBright():
     global servo2pos
-    servo2pos += 5
+    servo2pos += 90
     updateServos()
     
 #Functions for modifying servo C angle    
 def servoCleft():
     global servo3pos
-    servo3pos -= 5
+    servo3pos -= 90
     updateServos()
 def servoCright():
     global servo3pos
-    servo3pos += 5
+    servo3pos += 90
     updateServos()
+    print "this is a test"
 
 #Servo A button/label initialization and configuration
 servoalabel = Label(root, text="Servo 1")
@@ -161,6 +162,9 @@ def updateServos(): #Function for servo control
     servobangle.config(text=servo2pos)
     servocangle.config(text=servo3pos)
 
+    print servo1pos
+    print servo2pos
+    print servo3pos
     arduino.write_register(7, servo1pos, 0)
     arduino.write_register(8, servo2pos, 0)
     arduino.write_register(9, servo3pos, 0)

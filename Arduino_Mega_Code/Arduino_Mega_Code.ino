@@ -1,21 +1,12 @@
 /**
- *  Robot Arm Arduino Code - Arduino #1
- *
- *  This code does the following:
- *  1)    Reads values from the potentiometers on the joints of a 2-joint arm 
- *        and scales the input to a degree reading
- *  2)    Sends those values using the modbus protocol to a connected raspberry pi
- *  3)    Recieves commands from a connected Raspberry Pi using Modbus Protocol 
- *        regarding motor position 
- *  4)    Controls 3 stepper motors to position the arm based on recieved angles
- *
+ *  Robot Arm Arduino Code - Arduino Mega with Custom Shield
  *
  *  This code is maintained by David Cutting on Github as part of the WM-Roboarm Repository:
  *  https://github.com/davecutting/WM-Roboarm
  *
  *  (C) 2016-2017 by David Cutting
+ 
 **/
-
 
 // Software libraries for Modbus communication
 #include <SoftwareSerial.h>
@@ -26,17 +17,17 @@
 //PWM Driver Object
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define ASERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 
-#define BSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define BSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 
-#define CSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define CSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define CSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
+#define CSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 
-#define DSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define DSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define DSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
+#define DSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 #define DSERVOCENTER  (DSERVOMAX-DSERVOMIN)/2)
 
 // our servo # counter
@@ -44,7 +35,7 @@ uint8_t servonum = 0;
 
 // Data array for Modbus network sharing
 uint16_t au16data[10] = {
-  1800, 500, 0, 0, 0, 0, 350, 0, 0, 0 };
+  1500, 450, 0, 0, 0, 0, 350, 0, 0, 0 };
 
 // Modbus object declaration
 Modbus slave(1,0,0); // this is slave @1 and RS-232 or USB-FTDI
@@ -56,10 +47,6 @@ const int ydir = 26;
 const int ystp = 4;
 const int gdir = 28;
 const int gstp = 6;
-
-const int rled = 7;
-const int gled = 8;
-const int bled = 9;
 
 const int stpselect0 = 32;
 const int stpselect1 = 33;
@@ -74,7 +61,7 @@ const int slidePot = A4;
 int elbowPotVal = 0;
 int shoulderPotVal = 0;
 
-float xang = 90;
+float xang = 180;
 float yang = 45;
 float gamma = 0;
 
@@ -94,7 +81,7 @@ int a = 1;
 int shouldergain = 5;
 int elbowgain = 5;
 
-int minstep = 250;
+int minstep = 100;
 
 int servoapulse = 0;
 int servobpulse = 0;
@@ -108,6 +95,16 @@ int servocangle = 90;
 int side = 0;
 int sidearchive = 0;
 
+int dstate = 0; // 0 = empty, 1 = heads, 2 = tails
+unsigned long dtimer = 0;
+int ddelay = 500000;
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+//SETUP CODE
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 void setup() {
   // Set stepper pin types
   pinMode(xdir, OUTPUT);
@@ -116,10 +113,6 @@ void setup() {
   pinMode(ystp, OUTPUT);
   pinMode(gdir, OUTPUT);
   pinMode(gstp, OUTPUT);
-
-  pinMode(rled, OUTPUT);
-  pinMode(gled, OUTPUT);
-  pinMode(bled, OUTPUT);
 
   pinMode(stpselect0, OUTPUT);
   pinMode(stpselect1, OUTPUT);
@@ -137,16 +130,13 @@ void setup() {
   
   analogReference(INTERNAL2V56);
   
-  digitalWrite(rled, HIGH);
-  digitalWrite(gled, HIGH);
-  digitalWrite(bled, HIGH);
-  
   // Begin the Modbus communication as a slave
   slave.begin( 19200 );
   
   pwm.begin();
   
   pwm.setPWMFreq(60);
+ 
 }
 
 void setServoPulse(uint8_t n, double pulse) {
@@ -196,27 +186,44 @@ void loop() {
   // Store servo angles and penny side
   servoaangle = au16data[7];
   servobangle = au16data[8];
-  servocangle = au16data[8];
-  side = au16data[11];
+  servocangle = au16data[9];
   
-  if (side != sidearchive) {
-    pwm.setPWM(3, 0, (DSERVOCENTER);
-    delay(1); 
-    if (side == 1) {
-      pwm.setPWM(3, 0, DSERVOMIN);
-    }
-    if (side == 2) {
-      pwm.setPWM(3, 0, DSERVOMAX);
-    }
+  switch (dstate) {
+    case 0:
+      if (side != sidearchive && side == 1) {
+        dstate = 1;
+        dtimer = micros();
+        pwm.setPWM(3, 0, (DSERVOCENTER);
+      }
+      if (side != sidearchive && side == 2) {
+        dstate = 2;
+        dtimer = micros();
+        pwm.setPWM(3, 0, (DSERVOCENTER);
+      }
+    break;
+    
+    case 1:
+      if (micros() - dtimer >= ddelay) {
+        pwm.setPWM(3, 0, (DSERVOMIN));
+      }
+      dstate = 0;
+    break;
+    
+    case 2:
+      if (micros() - dtimer >= ddelay) {
+        pwm.setPWM(3, 0, (DSERVOMAX));
+      }
+      dstate = 0;
+    break;
   }
   
   servoapulse = map(servoaangle, 0, 180, ASERVOMIN, ASERVOMAX);
-  servobpulse = map(servoaangle, 0, 180, BSERVOMIN, BSERVOMAX);
-  servocpulse = map(servoaangle, 0, 180, CSERVOMIN, CSERVOMAX);
+  servobpulse = map(servobangle, 0, 180, BSERVOMIN, BSERVOMAX);
+  servocpulse = map(servocangle, 0, 180, CSERVOMIN, CSERVOMAX);
   
   pwm.setPWM(0, 0, servoapulse);
   pwm.setPWM(1, 0, servobpulse);
-  pwm.setPWM(2, 0, servocpulse);
+  pwm.setPWM(3, 0, servocpulse);
   
   
   /////////////////////////////////////////////////////////////////////
