@@ -17,18 +17,14 @@
 //PWM Driver Object
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define ASERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
-#define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
+#define ASERVOMIN 110 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX 550 // this is the 'maximum' pulse length count (out of 4096)
 
-#define BSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
-#define BSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
+#define BSERVOMIN 110 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMAX 550 // this is the 'maximum' pulse length count (out of 4096)
 
-#define CSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
-#define CSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
-
-#define DSERVOMIN  110 // this is the 'minimum' pulse length count (out of 4096)
-#define DSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
-#define DSERVOCENTER  (DSERVOMAX-DSERVOMIN)/2)
+#define DSERVOMIN 110 // this is the 'minimum' pulse length count (out of 4096)
+#define DSERVOMAX 550 // this is the 'maximum' pulse length count (out of 4096)
 
 // our servo # counter
 uint8_t servonum = 0;
@@ -81,7 +77,7 @@ int a = 1;
 int shouldergain = 5;
 int elbowgain = 5;
 
-int minstep = 100;
+int minstep = 50;
 
 int servoapulse = 0;
 int servobpulse = 0;
@@ -97,7 +93,7 @@ int sidearchive = 0;
 
 int dstate = 0; // 0 = empty, 1 = heads, 2 = tails
 unsigned long dtimer = 0;
-int ddelay = 500000;
+#define DDELAY 500000
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -136,6 +132,10 @@ void setup() {
   pwm.begin();
   
   pwm.setPWMFreq(60);
+  
+  pwm.setPWM(3, 0, (DSERVOMIN));
+  delay(500);
+  pwm.setPWM(3, 0, (DSERVOMAX));
  
 }
 
@@ -151,7 +151,7 @@ void setServoPulse(uint8_t n, double pulse) {
 }
 
 void loop() {
-  sidearchive = side;
+  
   
   if (a == 1) {
     a = 0;
@@ -186,44 +186,46 @@ void loop() {
   // Store servo angles and penny side
   servoaangle = au16data[7];
   servobangle = au16data[8];
-  servocangle = au16data[9];
+  side = au16data[9];
   
   switch (dstate) {
-    case 0:
-      if (side != sidearchive && side == 1) {
+    case 0:  // waiting for command
+      if ((side != sidearchive) && (side == 1)) {
         dstate = 1;
-        dtimer = micros();
-        pwm.setPWM(3, 0, (DSERVOCENTER);
+        dtimer = micros() + DDELAY;
+        pwm.setPWM(3, 0, ((DSERVOMIN+DSERVOMAX)/2));
       }
-      if (side != sidearchive && side == 2) {
+      if ((side != sidearchive) && (side == 2)) {
         dstate = 2;
-        dtimer = micros();
-        pwm.setPWM(3, 0, (DSERVOCENTER);
+        dtimer = micros() + DDELAY;
+        pwm.setPWM(3, 0, ((DSERVOMIN+DSERVOMAX)/2));
       }
-    break;
+      break;
     
-    case 1:
-      if (micros() - dtimer >= ddelay) {
+    case 1:  // center hold, go min when done
+      if (micros() > dtimer) {
         pwm.setPWM(3, 0, (DSERVOMIN));
+        dstate = 0;
+        au16data[9] = 0;
       }
-      dstate = 0;
-    break;
+      
+      break;
     
-    case 2:
-      if (micros() - dtimer >= ddelay) {
+    case 2:  // center hold, go max when don
+      if (micros() > dtimer) {
         pwm.setPWM(3, 0, (DSERVOMAX));
+        dstate = 0;
+        au16data[9] = 0;
       }
-      dstate = 0;
-    break;
+      break;
   }
+  sidearchive = side;
   
   servoapulse = map(servoaangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobpulse = map(servobangle, 0, 180, BSERVOMIN, BSERVOMAX);
-  servocpulse = map(servocangle, 0, 180, CSERVOMIN, CSERVOMAX);
   
   pwm.setPWM(0, 0, servoapulse);
   pwm.setPWM(1, 0, servobpulse);
-  pwm.setPWM(3, 0, servocpulse);
   
   
   /////////////////////////////////////////////////////////////////////

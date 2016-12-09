@@ -9,9 +9,9 @@
 #   6               gamma               Master          Rotation of 3D mouse about z axis
 #   7               servoapos           Master          Target angle of Servo A
 #   8               servobpos           Master          Target angle of Servo B
-#   9               servocpos           Master          Target angle of Servo C
+#   9               sidee              Master          Penny side (0=empty, 1=heads, 2=tails)Target angle of Servo C
 #   10              --                  Master          Reserved for additional servo control   
-#   11              side                Master          Penny side (0=empty, 1=heads, 2=tails)
+        
 
 # Laptop Modbus Register Table
 # Register:     Register Name:      Source:         Description:
@@ -24,7 +24,7 @@ from spnav import *
 import time
 import minimalmodbus
 
-#lapptop = minimalmodbus.Instrument('192.168.5.2', 1) # port name, slave address (in decimal)
+#laptop = minimalmodbus.Instrument('192.168.5.2', 1, mode='tcp') # port name, slave address (in decimal)
 
 #Find the serial port for the Arduino Mega
 try:
@@ -71,36 +71,37 @@ servo1pos=90
 servo2pos=90
 servo3pos=90
 
+sidee = 0
+
 #Functions for modifying servo A angle
 def servoAleft():
     global servo1pos
     servo1pos -= 90
-    updateServos()
+    updateServoA()
 def servoAright():
     global servo1pos
     servo1pos += 90
-    updateServos()
+    updateServoA()
     
 #Functions for modifying servo B angle    
 def servoBleft():
     global servo2pos
     servo2pos -= 90
-    updateServos()
+    updateServoB()
 def servoBright():
     global servo2pos
     servo2pos += 90
-    updateServos()
+    updateServoB()
     
 #Functions for modifying servo C angle    
 def servoCleft():
-    global servo3pos
-    servo3pos -= 90
-    updateServos()
+    global sidee
+    sidee = 1
+    updateServoD()
 def servoCright():
-    global servo3pos
-    servo3pos += 90
-    updateServos()
-    print "this is a test"
+    global sidee
+    sidee = 2
+    updateServoD()
 
 #Servo A button/label initialization and configuration
 servoalabel = Label(root, text="Scoop")
@@ -126,48 +127,45 @@ servobright.grid(row=1, column=3)
 
 #Servo C button/label initialization and configuration
 servoclabel = Label(root, text="Flip")
-servocleft = Button(root, text="<<", command=servoCleft, height=3, width=8)
-servocangle = Label(root, text=servo3pos)
-servocright = Button(root, text=">>", command=servoCright, height=3, width=8)
+servocleft = Button(root, text="HEADS", command=servoCleft, height=3, width=8)
+servocangle = Label(root, text=sidee)
+servocright = Button(root, text="TAILS", command=servoCright, height=3, width=8)
 #Servo C control object location definitions using grids.
 servoclabel.grid(row=3, column=0)
 servocleft.grid(row=3, column=1)
 servocangle.grid(row=3, column=2)
 servocright.grid(row=3, column=3)
 
-def updateServos(): #Function for servo control
+def updateServoD():
+    global sidee
+
+    servocangle.config(text=sidee)
+
+    arduino.write_register(9, sidee, 0)
+
+def updateServoA():
     global servo1pos
-    global servo2pos
-    global servo3pos
     global servoaangle
-    global servobangle
-    global servocangle
     
     if (servo1pos > 180):
         servo1pos = 180
     if (servo1pos < 0):
         servo1pos = 0
 
+    servoaangle.config(text=servo1pos)
+    arduino.write_register(7, servo1pos, 0)
+
+def updateServoB():
+    global servo2pos
+    global servobangle
+    
     if (servo2pos > 180):
         servo2pos = 180
     if (servo2pos < 0):
         servo2pos = 0
 
-    if (servo3pos > 180):
-        servo3pos = 180
-    if (servo3pos < 0):
-        servo3pos = 0
-        
-    servoaangle.config(text=servo1pos)
     servobangle.config(text=servo2pos)
-    servocangle.config(text=servo3pos)
-
-    print servo1pos
-    print servo2pos
-    print servo3pos
-    arduino.write_register(7, servo1pos, 0)
     arduino.write_register(8, servo2pos, 0)
-    arduino.write_register(9, servo3pos, 0)
 
 def updateSteppers(): #Function for stepper control and spacenav input
 
@@ -241,8 +239,7 @@ def updateSteppers(): #Function for stepper control and spacenav input
                 rawshoulder = arduino.read_register(4, 0)
                 rawelbow = arduino.read_register(5, 0)
 
-                #side = laptop.read_register(0, 0)
-                #print side
+                #ide = laptop.read_register(0, 0)
 
                 # Print targets, current positions, etc.
                 print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
