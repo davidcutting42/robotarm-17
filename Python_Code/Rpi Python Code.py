@@ -78,21 +78,21 @@ sidee = 0
 #Functions for modifying servo A angle
 def servoAleft():
     global servo1pos
-    servo1pos -= 90
+    servo1pos = 180
     updateServoA()
 def servoAright():
     global servo1pos
-    servo1pos += 90
+    servo1pos = 90
     updateServoA()
     
 #Functions for modifying servo B angle    
 def servoBleft():
     global servo2pos
-    servo2pos -= 90
+    servo2pos = 170
     updateServoB()
 def servoBright():
     global servo2pos
-    servo2pos += 90
+    servo2pos = 55
     updateServoB()
     
 #Functions for modifying servo C angle    
@@ -107,66 +107,54 @@ def servoCright():
 
 #Servo A button/label initialization and configuration
 servoalabel = Label(root, text="Scoop")
-servoaleft = Button(root, text="<<", command=servoAleft, height=3, width=8)
-servoaangle = Label(root, text=servo1pos)
-servoaright = Button(root, text=">>", command=servoAright, height=3, width=8)
+servoaleft = Button(root, text="Open", command=servoAleft, height=3, width=8, bg='orange red')
+servoaright = Button(root, text="Close", command=servoAright, height=3, width=8, bg='orange red')
 #Servo A control object location definitions using grids.
 servoalabel.grid(row=0, column=0)
 servoaleft.grid(row=0, column=1)
-servoaangle.grid(row=0, column=2)
 servoaright.grid(row=0, column=3)
 
 #Servo B button/label initialization and configuration
 servoblabel = Label(root, text="Lift")
-servobleft = Button(root, text="<<", command=servoBleft, height=3, width=8)
-servobangle = Label(root, text=servo2pos)
-servobright = Button(root, text=">>", command=servoBright, height=3, width=8)
+servobleft = Button(root, text="Down", command=servoBleft, height=3, width=8, bg='purple4', fg='white')
+servobright = Button(root, text="Up", command=servoBright, height=3, width=8, bg='purple4', fg='white')
 #Servo B control object location definitions using grids.
 servoblabel.grid(row=1, column=0)
 servobleft.grid(row=1, column=1)
-servobangle.grid(row=1, column=2)
 servobright.grid(row=1, column=3)
 
 #Servo C button/label initialization and configuration
 servoclabel = Label(root, text="Flip")
-servocleft = Button(root, text="HEADS", command=servoCleft, height=3, width=8)
-servocangle = Label(root, text=sidee)
-servocright = Button(root, text="TAILS", command=servoCright, height=3, width=8)
+servocleft = Button(root, text="Heads", command=servoCleft, height=3, width=8, bg='snow4')
+servocright = Button(root, text="Tails", command=servoCright, height=3, width=8, bg='snow4')
 #Servo C control object location definitions using grids.
 servoclabel.grid(row=3, column=0)
 servocleft.grid(row=3, column=1)
-servocangle.grid(row=3, column=2)
 servocright.grid(row=3, column=3)
 
 def updateServoD():
     global sidee
 
-    servocangle.config(text=sidee)
-
     arduino.write_register(9, sidee, 0)
 
 def updateServoA():
     global servo1pos
-    global servoaangle
     
     if (servo1pos > 180):
         servo1pos = 180
     if (servo1pos < 0):
         servo1pos = 0
 
-    servoaangle.config(text=servo1pos)
     arduino.write_register(7, servo1pos, 0)
 
 def updateServoB():
     global servo2pos
-    global servobangle
     
     if (servo2pos > 180):
         servo2pos = 180
     if (servo2pos < 0):
         servo2pos = 0
-
-    servobangle.config(text=servo2pos)
+        
     arduino.write_register(8, servo2pos, 0)
 
 def updateSteppers(): #Function for stepper control and spacenav input
