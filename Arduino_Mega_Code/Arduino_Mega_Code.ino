@@ -69,15 +69,15 @@ unsigned long xclk = 0;
 unsigned long yclk = 0;
 unsigned long gclk = 0;
 
-float xdelay = 0;
-float ydelay = 0;
+int xdelay = 0;
+int ydelay = 0;
 unsigned long gdelay = 0;
-int a = 1;
 
-int shouldergain = 5;
-int elbowgain = 5;
+// TODO: Mess with these variables to get better control
+int shouldergain = 20000;
+int elbowgain = 20000;
 
-int minstep = 50;
+int minstep = 50; // TODO: Adjust to better value
 
 int servoapulse = 0;
 int servobpulse = 0;
@@ -90,6 +90,9 @@ int servocangle = 90;
 
 int side = 0;
 int sidearchive = 0;
+
+int servoaarchive = 0;
+int servobarchive = 0;
 
 int dstate = 0; // 0 = empty, 1 = heads, 2 = tails
 unsigned long dtimer = 0;
@@ -119,7 +122,8 @@ void setup() {
   pinMode(elbowPot, INPUT);
   pinMode(slidePot, INPUT); 
   
-  // Set to 8 microsteps/step  
+  // HIGH, HIGH, LOW = 8 microsteps/step  
+  // TODO: Microstepping level
   digitalWrite(stpselect0, HIGH);
   digitalWrite(stpselect1, HIGH);
   digitalWrite(stpselect2, LOW);
@@ -127,47 +131,22 @@ void setup() {
   analogReference(INTERNAL2V56);
   
   // Begin the Modbus communication as a slave
-  slave.begin( 19200 );
+  slave.begin( 57600 );
   
   pwm.begin();
   
   pwm.setPWMFreq(60);
-  
-  pwm.setPWM(3, 0, (DSERVOMIN));
-  delay(500);
-  pwm.setPWM(3, 0, (DSERVOMAX));
- 
 }
 
-void setServoPulse(uint8_t n, double pulse) {
-  double pulselength;
-  
-  pulselength = 1000000;   // 1,000,000 us per second
-  pulselength /= 60;   // 60 Hz
-  pulselength /= 4096;  // 12 bits of resolution
-  pulse *= 1000;
-  pulse /= pulselength;
-  pwm.setPWM(n, 0, pulse);
-}
-
-void loop() {
-  
-  
-  if (a == 1) {
-    a = 0;
-    delay(2000);
-  }
-  
-  
+void loop() {  
   // Read arm potentiometers
   elbowPotVal = analogRead(elbowPot);
   shoulderPotVal = analogRead(shoulderPot);
   
   // Map arm potentiometer readings to corresponding degree measurements
-  float elbowAngle = (-0.8859 * elbowPotVal + 143.08)*10;
-  float shoulderAngle = (1157.8 * pow(shoulderPotVal, -0.37))*10;
-  shoulderAngle /= 10;
-  elbowAngle /= 10;
+  // TODO: Check for optimized potentiometer readings.
+  float elbowAngle = (-0.8859 * elbowPotVal + 143.08);
+  float shoulderAngle = (1157.8 * pow(shoulderPotVal, -0.37));
   
   au16data[2] = shoulderAngle*10;
   au16data[3] = elbowAngle*10;
@@ -178,8 +157,8 @@ void loop() {
   slave.poll( au16data, 10 );
   
   // Store motor angles
-  xang = au16data[0]/10;
-  yang = au16data[1]/10;
+  xang = (float)au16data[0]/10;
+  yang = (float)au16data[1]/10;
   gamma = au16data[6];
   gamma -= 350;
   
@@ -193,18 +172,18 @@ void loop() {
       if ((side != sidearchive) && (side == 1)) {
         dstate = 1;
         dtimer = micros() + DDELAY;
-        pwm.setPWM(3, 0, ((DSERVOMIN+DSERVOMAX)/2));
+        pwm.setPWM(3, 0, (DSERVOMIN+DSERVOMAX)/2);
       }
       if ((side != sidearchive) && (side == 2)) {
         dstate = 2;
         dtimer = micros() + DDELAY;
-        pwm.setPWM(3, 0, ((DSERVOMIN+DSERVOMAX)/2));
+        pwm.setPWM(3, 0, (DSERVOMIN+DSERVOMAX)/2);
       }
       break;
     
     case 1:  // center hold, go min when done
       if (micros() > dtimer) {
-        pwm.setPWM(3, 0, (DSERVOMIN));
+        pwm.setPWM(3, 0, DSERVOMIN);
         dstate = 0;
         au16data[9] = 0;
       }
@@ -213,7 +192,7 @@ void loop() {
     
     case 2:  // center hold, go max when don
       if (micros() > dtimer) {
-        pwm.setPWM(3, 0, (DSERVOMAX));
+        pwm.setPWM(3, 0, DSERVOMAX);
         dstate = 0;
         au16data[9] = 0;
       }
@@ -221,11 +200,21 @@ void loop() {
   }
   sidearchive = side;
   
-  servoapulse = map(servoaangle, 0, 180, ASERVOMIN, ASERVOMAX);
-  servobpulse = map(servobangle, 0, 180, BSERVOMIN, BSERVOMAX);
+  // if a command is recieved other than the existing command, the servo will update. THis cuts down on processing power.
   
-  pwm.setPWM(0, 0, servoapulse);
-  pwm.setPWM(1, 0, servobpulse);
+  if (servoaarchive != servoaangle) {
+    servoapulse = map(servoaangle, 0, 180, ASERVOMIN, ASERVOMAX);
+    pwm.setPWM(0, 0, servoapulse);
+  }
+  
+  servoaarchive = servoaangle;
+  
+  if (servobarchive != servobangle) {
+    servobpulse = map(servobangle, 0, 180, BSERVOMIN, BSERVOMAX);
+    pwm.setPWM(1, 0, servobpulse);
+  }
+  
+  servobarchive = servobangle;
   
   
   /////////////////////////////////////////////////////////////////////
@@ -235,18 +224,18 @@ void loop() {
   
   float xerr = abs(xang-shoulderAngle);
   
+  // TODO: Change tolerance variable for shoulder
   if(xerr < 1) {
     xerr = 0;
     xstate = 0;
   }
-  
-  if (xerr > 0) {  
+  else {  
     if (xang > shoulderAngle) {
       switch (xstate) {
         case 0:
           digitalWrite(xdir, HIGH);
           digitalWrite(xstp, LOW);
-          xdelay =  shouldergain/xerr*1000;
+          xdelay =  shouldergain/xerr;
           if (xdelay < minstep){
             xdelay = minstep;
           }
@@ -268,12 +257,12 @@ void loop() {
           break;
       }
     }
-    else if (xang < shoulderAngle) {
+    else {
       switch (xstate) {
         case 0:
           digitalWrite(xdir, LOW);
           digitalWrite(xstp, LOW);
-          xdelay = shouldergain/xerr*1000;
+          xdelay = shouldergain/xerr;
           if (xdelay < minstep){
             xdelay = minstep;
           }
@@ -303,18 +292,18 @@ void loop() {
   
   float yerr = abs(yang-elbowAngle);
   
+  // TODO: Change tolerance variable for elbow
   if(yerr < 3) {
     yerr = 0;
     ystate = 0;
   }
-  
-  if (yerr > 0) {  
+  else {  
     if (yang > elbowAngle) {
       switch (ystate) {
         case 0:
           digitalWrite(ydir, LOW);
           digitalWrite(ystp, LOW);
-          ydelay = elbowgain/yerr*1000;
+          ydelay = elbowgain/yerr;
           if (ydelay < minstep){
             ydelay = minstep;
            }
@@ -336,12 +325,12 @@ void loop() {
           break;
       }
     }  
-    else if (yang < elbowAngle) {
+    else {
       switch (ystate) {
         case 0:
           digitalWrite(ydir, HIGH);
           digitalWrite(ystp, LOW);
-          ydelay = elbowgain/yerr*1000;
+          ydelay = elbowgain/yerr;
             if (ydelay < minstep){
             ydelay = minstep;
           }

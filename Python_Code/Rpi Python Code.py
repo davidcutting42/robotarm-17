@@ -35,6 +35,8 @@ except:
     except:
         arduino = minimalmodbus.Instrument('/dev/ttyACM2', 1) # port name, slave address (in decimal)
 
+arduino.serial.baudrate = 57600
+
 #Dimensions of the Robot
 H = 240.0 # Base height in mm
 F = 255.0 # Femur length in mm
@@ -43,7 +45,7 @@ T = 255.0 # Tibia length in mm
 # Limit variables (mm)
 maxy = 480
 miny = 130
-minz = 100
+minz = 0
 maxz = minz + maxy
 
 # Starting Position of the Arm (mm)
