@@ -49,8 +49,8 @@ minz = 0
 maxz = minz + maxy
 
 # Starting Position of the Arm (mm)
-y = miny 
-z = 250
+y = 80 
+z = 200
 
 # Open the 3D mouse channel
 spnav_open()
