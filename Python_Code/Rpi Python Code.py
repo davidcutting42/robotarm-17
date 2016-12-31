@@ -2,20 +2,14 @@
 # Register:     Register Name:      Source:         Description:
 #   0               alpha               Master          Target angle for shoulder
 #   1               beta                Master          Target angle for elbow
-#   2               shoulderpot         Slave           Current angle of shoulder (debug only)
-#   3               elbowpot            Slave           Current angle of elbow (debug only)
-#   4               rawshoulder         Slave           Current analogRead value of Shoulder (debug only)
-#   5               rawelbow            Slave           Current analogRead value of Elbow (debug only)
-#   6               gamma               Master          Rotation of 3D mouse about z axis
+#   2               shoulderpot         Slave           Current angle of shoulder
+#   3               elbowpot            Slave           Current angle of elbow
+#   4               rawshoulder         Slave           Current analogRead Shoulder
+#   5               rawelbow            Slave           Current analogRead Elbow
+#   6               gamma               Master          Rotation of 3D mouse 
 #   7               servoapos           Master          Target angle of Servo A
 #   8               servobpos           Master          Target angle of Servo B
-#   9               sidee              Master          Penny side (0=empty, 1=heads, 2=tails)Target angle of Servo C
-#   10              --                  Master          Reserved for additional servo control   
-        
-
-# Laptop Modbus Register Table
-# Register:     Register Name:      Source:         Description:
-#   0               side                Slave           Penny side (0=empty, 1=heads, 2=tails)
+#   9               sidee               Master          Penny side (1=h, 2=t)
 
 from Tkinter import *
 import math
@@ -23,8 +17,6 @@ import numpy as np
 from spnav import *
 import time
 import minimalmodbus
-
-#laptop = minimalmodbus.Instrument('192.168.5.2', 1, mode='tcp') # port name, slave address (in decimal)
 
 #Find the serial port for the Arduino Mega
 try:
@@ -228,8 +220,6 @@ def updateSteppers(): #Function for stepper control and spacenav input
                 elbowpot = arduino.read_register(3, 1)
                 rawshoulder = arduino.read_register(4, 0)
                 rawelbow = arduino.read_register(5, 0)
-
-                #ide = laptop.read_register(0, 0)
 
                 # Print targets, current positions, etc.
                 print "alph: {:.2f}, beta: {:.2f}, y: {:.2f}, z: {:.2f}, shoulder: {}, elbow: {} rawshoulder: {} rawelbow: {} gamma: {}".format(np.degrees(alpha), np.degrees(beta), y, z, shoulderpot, elbowpot, rawshoulder, rawelbow, gamma)
