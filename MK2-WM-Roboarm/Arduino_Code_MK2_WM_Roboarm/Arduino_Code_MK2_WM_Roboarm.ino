@@ -21,8 +21,8 @@ const int yoffset = 27;
 const int startbutton = A2;
 
 // Set lengths of humerus and ulna
-double h = 249.2;
-double u = 249.2;
+float h = 249.2;
+float u = 249.2;
 
 
 
@@ -38,7 +38,7 @@ waypoint targetcenter = {85, 277, 1, 0};
 waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
 
 // Array for storing calculated angles
-double angles[2];
+float angles[2];
 
 // Number of loops through main loop
 int k = 1;
@@ -55,10 +55,6 @@ int astepdirection = 0;
 int bstepdirection = 0;
 int cstepdirection = 0;
 
-const unsigned long motadelay = 5000 / stpmode;
-const unsigned long motbdelay = 5000 / stpmode;
-const unsigned long motcdelay = 1000 / stpmode;
-
 int astepswitch = 0;
 int bstepswitch = 0;
 int cstepswitch = 0;
@@ -71,11 +67,15 @@ int effectorpositionstatus = 0;
 int runonstarta = 1;
 
 // Set ratio for number of steps to number of degrees
-const double aratio = 200.0 * 32 / 10 * stpmode / 360.0;
-const double bratio = 200.0 * 24 / 10 * stpmode / 360.0;
-const double cratio = 200.0 * 50.0 * stpmode / 360.0;
+const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
+const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
+const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 
-int waypointselect = 0;
+const unsigned long motadelay = 5000 / aratio * 1.5;
+const unsigned long motbdelay = 5000 / bratio * 1.5;
+const unsigned long motcdelay = 1000 / cratio;
+
+int waypointselect = 1;
 
 void setup() {
   // Set each control pin to an output
@@ -152,6 +152,7 @@ void loop() {
   if (stepdifferenceall == 0 && waypointselect < 7) {
     inversekinematics(wp[waypointselect]);
     waypointselect++;
+    delay(500);
   }
     
   
@@ -275,8 +276,8 @@ void loop() {
 
 void inversekinematics(waypoint target) {
   //Calculating the two different possibilities for the beta angle
-  double beta1 = atan2((sqrt(1-((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
-  double beta2 = atan2((-(sqrt(1-((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u))))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
+  double beta1 = atan2(  (sqrt(1-pow(((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)), 2))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
+  double beta2 = atan2((-(sqrt(1-pow(((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)), 2)))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
   
   Serial.print("beta1 = ");
   Serial.println(beta1);
@@ -284,15 +285,15 @@ void inversekinematics(waypoint target) {
   Serial.println(beta2);
 
   // Calculating the two different possibilities for the alpha angle
-  double k2a = u * sin(beta1);
-  double k2b = u * sin(beta2);
-  double k1a = h + (u * cos(beta1));
-  double k1b = h + (u * cos(beta2));
-  double alpha1 = atan2(target.y, target.x)-atan2(k2a, k1a);
-  double alpha2 = atan2(target.y, target.x)-atan2(k2b, k1b);
+  float k2a = u * sin(beta1);
+  float k2b = u * sin(beta2);
+  float k1a = h + (u * cos(beta1));
+  float k1b = h + (u * cos(beta2));
+  float alpha1 = atan2(target.y, target.x)-atan2(k2a, k1a);
+  float alpha2 = atan2(target.y, target.x)-atan2(k2b, k1b);
 
   // Create an array of the 4 calculated alpha and beta angle, converted to degrees.
-  double trigresults[] = {alpha1*180.0/3.14159, alpha2*180.0/3.14159, beta1*180.0/3.14159, beta2*180.0/3.14159};
+  float trigresults[] = {alpha1*180.0/M_PI, alpha2*180.0/M_PI, beta1*180.0/M_PI, beta2*180.0/M_PI};
 
   // Make all negative angles positive
   while(trigresults[0] < 0) {
@@ -324,7 +325,7 @@ void inversekinematics(waypoint target) {
   }
   
   // Test alpha2 and beta2 to see if they are inside the allowable limits
-  if((trigresults[1] > 200 && trigresults[1] < 360) || (trigresults[3] > 160 && trigresults[3] < 18) || (trigresults[1] != trigresults[1]) || (trigresults[3] != trigresults[3])) {
+  if((trigresults[1] > 200 && trigresults[1] < 360) || (trigresults[3] > 160 && trigresults[3] < 185) || (trigresults[1] != trigresults[1]) || (trigresults[3] != trigresults[3])) {
     checktwo = false;
   }
 
@@ -341,11 +342,11 @@ void inversekinematics(waypoint target) {
   }
 
   // If one of the angle sets lies in an acceptable range and the other does not, the one in range will be transferred to a new array
-  else if(checkone && !checktwo) {
+  else if(checkone && (!checktwo)) {
     angles[0] = trigresults[0];
     angles[1] = trigresults[2];
   }
-  else if(!checkone && checktwo) {
+  else if((!checkone) && checktwo) {
     angles[0] = trigresults[1];
     angles[1] = trigresults[3];
   }
@@ -415,26 +416,26 @@ void inversekinematics(waypoint target) {
   }
 }
 
-double astepdegrees(long steps) {
-  return (double)steps / aratio;
+float astepdegrees(long steps) {
+  return (float)steps / aratio;
 }
 
-double bstepdegrees(long steps) {
-  return (double)steps / bratio;
+float bstepdegrees(long steps) {
+  return (float)steps / bratio;
 }
 
-double cstepdegrees(long steps) {
-  return (double)steps / cratio;
+float cstepdegrees(long steps) {
+  return (float)steps / cratio;
 }
 
-long adegreesstep(double deg) {
+long adegreesstep(float deg) {
   return (long)(deg * aratio);
 }
 
-long bdegreesstep(double deg) {
+long bdegreesstep(float deg) {
   return (long)(deg * bratio);
 }
 
-long cdegreesstep(double deg) {
+long cdegreesstep(float deg) {
   return (long)(deg * cratio);
 }
