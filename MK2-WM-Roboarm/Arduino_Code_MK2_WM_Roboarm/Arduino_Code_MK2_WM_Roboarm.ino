@@ -33,7 +33,7 @@ waypoint stack2 = {85, 68, 1, 0};
 waypoint stack3 = {295, 277, 0, 0};
 waypoint stack4 = {85, 487, 1, 0};
 waypoint stack5 = {-124, 277, 0, 0};
-waypoint targetcenter = {85, 277, 1, 0};
+waypoint targetcenter = {85, 277, 0, 0};
 
 waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
 
@@ -404,7 +404,7 @@ void inversekinematics(waypoint target) {
     Serial.println(bstepdegrees(stepperBtarget));
     Serial.println(bstepdegrees(bstepcount));
     Serial.println("opposite1");
-    bstepdifference = bdegreesstep(bstepdegrees(abs(bdegreesstep(360) - bstepcount + stepperBtarget)));
+    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - bstepcount + stepperBtarget));
   }
   else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
     digitalWrite(bdir, HIGH);
@@ -413,19 +413,19 @@ void inversekinematics(waypoint target) {
     Serial.println(bstepdegrees(stepperBtarget));
     Serial.println(bstepdegrees(bstepcount));
     Serial.println("opposite2");
-    bstepdifference = bdegreesstep(bstepdegrees(abs(bdegreesstep(360) - stepperBtarget + bstepcount)));
+    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - stepperBtarget + bstepcount));
   }
   else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
     digitalWrite(bdir, LOW);
     Serial.println("same1");
     bstepdirection = 0;
-    bstepdifference = bdegreesstep(bstepdegrees(abs(stepperBtarget - bstepcount)));
+    bstepdifference = bdegreesstep(bstepdegrees(stepperBtarget - bstepcount));
   }
   else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
     digitalWrite(bdir, HIGH);
     Serial.println("same2");
     bstepdirection = 1;
-    bstepdifference = bdegreesstep(bstepdegrees(abs(bstepcount - stepperBtarget)));
+    bstepdifference = bdegreesstep(bstepdegrees(bstepcount - stepperBtarget));
   }
   else {
     bstepdifference = 0;  
