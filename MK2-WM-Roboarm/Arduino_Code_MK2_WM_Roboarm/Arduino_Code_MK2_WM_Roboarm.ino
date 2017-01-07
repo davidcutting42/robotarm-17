@@ -1,5 +1,5 @@
 #include "MyTypes.h"
-#define stpmode 8 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
+#define stpmode 32 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
 
 // Set pin numbers for steppers A, B, and C
 const int astep = 4;
@@ -30,8 +30,8 @@ float u = 249.2;
 waypoint homepos = {0, h + u, 1, 90}; 
 waypoint stack1 = {-280, -213, 0, 0};
 waypoint stack2 = {85, 68, 1, 0};
-waypoint stack3 = {295, 277, 1, 0};
-waypoint stack4 = {85, 487, 0, 0};
+waypoint stack3 = {295, 277, 0, 0};
+waypoint stack4 = {85, 487, 1, 0};
 waypoint stack5 = {-124, 277, 0, 0};
 waypoint targetcenter = {85, 277, 1, 0};
 
@@ -71,9 +71,21 @@ const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
 const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
 const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 
-const unsigned long motadelay = 5000 / aratio * 1.5;
+const unsigned long motadelay = 5000 / aratio * 2;
 const unsigned long motbdelay = 5000 / bratio * 1.5;
 const unsigned long motcdelay = 1000 / cratio;
+
+unsigned long currentmotadelay = motadelay;
+unsigned long currentmotbdelay = motbdelay;
+
+const unsigned long motamaxdelay = motadelay * 1000;
+const unsigned long motbmaxdelay = motbdelay * 1000;
+
+const int motascalefactor = 100;
+const int motbscalefactor = 100;
+
+int motadelayfactor = 0;
+int motbdelayfactor = 0;
 
 int waypointselect = 1;
 
@@ -161,17 +173,19 @@ void loop() {
       if ((astepdifference != 0) && (cstepdifference == 0)) {
         astepswitch = 1;
         astepswitchtimer = micros();
+        currentmotadelay = motamaxdelay;
+        motadelayfactor = 0;
       }
       break;
     case 1:
-      if(micros() >= (astepswitchtimer + motadelay)) {
+      if(micros() >= (astepswitchtimer + currentmotadelay)) {
         digitalWrite(astep, LOW);
         astepswitchtimer = micros();
         astepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (astepswitchtimer + motadelay)) {
+      if(micros() >= (astepswitchtimer + currentmotadelay)) {
         digitalWrite(astep, HIGH);
         astepswitchtimer = micros();
         if(astepdirection == 0) {
@@ -188,6 +202,11 @@ void loop() {
         else {
           astepswitch = 1;
         }
+        
+        if(motadelayfactor <= motascalefactor) {
+          motadelayfactor++;
+          currentmotadelay = ((pow(motadelayfactor - motascalefactor, 2) / 4) + motadelay);
+        }
       }
       break;
   }
@@ -197,18 +216,20 @@ void loop() {
     case 0:
       if ((bstepdifference != 0) && (cstepdifference == 0)) {
         bstepswitch = 1;
-        bstepswitchtimer = micros();
+        bstepswitchtimer = micros();  
+        currentmotbdelay = motbmaxdelay;
+        motbdelayfactor = 0;
       }
       break;
     case 1:
-      if(micros() >= (bstepswitchtimer + motbdelay)) {
+      if(micros() >= (bstepswitchtimer + currentmotbdelay)) {
         digitalWrite(bstep, LOW);
         bstepswitchtimer = micros();
         bstepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (bstepswitchtimer + motbdelay)) {
+      if(micros() >= (bstepswitchtimer + currentmotbdelay)) {
         digitalWrite(bstep, HIGH);
         bstepswitchtimer = micros();
         if(bstepdirection == 0) {
@@ -218,15 +239,15 @@ void loop() {
           bstepcount--;
         }
         bstepdifference--;
-        //Serial.print("bstepdifference = ");
-        //Serial.print(bstepdifference);
-        //Serial.print("bstepcount = ");
-        //Serial.println(bstepcount);
         if(bstepdifference == 0) {
           bstepswitch = 0;
         }
         else {
           bstepswitch = 1;
+        }
+        if(motbdelayfactor <= motbscalefactor) {
+          motbdelayfactor++;
+          currentmotbdelay = ((pow(motbdelayfactor - motbscalefactor, 2) / 4) + motbdelay);
         }
       }
       break;
@@ -363,6 +384,8 @@ void inversekinematics(waypoint target) {
   long stepperBtarget = bdegreesstep(angles[1]);
   long stepperCtarget = cdegreesstep(target.base);
   
+  
+  
   if(stepperAtarget < astepcount) {
     digitalWrite(adir, LOW);
     astepdirection = 1;
@@ -373,29 +396,36 @@ void inversekinematics(waypoint target) {
     astepdirection = 0;
     astepdifference = stepperAtarget - astepcount;
   }
-  else {
-    astepdifference = 0;  
-  }
-
-  if((stepperBtarget < bdegreesstep(180)) && (bstepcount > bdegreesstep(180))) {
+  
+  if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
     digitalWrite(bdir, LOW);
     bstepdirection = 0;
-    bstepdifference = abs(bdegreesstep(360) - bstepcount + stepperBtarget);
+    Serial.println("Compare Angles (2):");
+    Serial.println(bstepdegrees(stepperBtarget));
+    Serial.println(bstepdegrees(bstepcount));
+    Serial.println("opposite1");
+    bstepdifference = bdegreesstep(bstepdegrees(abs(bdegreesstep(360) - bstepcount + stepperBtarget)));
   }
-  else if((stepperBtarget > bdegreesstep(180)) && (bstepcount < bdegreesstep(180))) {
+  else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
     digitalWrite(bdir, HIGH);
     bstepdirection = 1;
-    bstepdifference = abs(bdegreesstep(360) - stepperBtarget + bstepcount);
+    Serial.println("Compare Angles (2):");
+    Serial.println(bstepdegrees(stepperBtarget));
+    Serial.println(bstepdegrees(bstepcount));
+    Serial.println("opposite2");
+    bstepdifference = bdegreesstep(bstepdegrees(abs(bdegreesstep(360) - stepperBtarget + bstepcount)));
   }
-  else if(stepperBtarget > bstepcount) {
+  else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
     digitalWrite(bdir, LOW);
+    Serial.println("same1");
     bstepdirection = 0;
-    bstepdifference = abs(stepperBtarget - bstepcount);
+    bstepdifference = bdegreesstep(bstepdegrees(abs(stepperBtarget - bstepcount)));
   }
-  else if(stepperBtarget < bstepcount) {
+  else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
     digitalWrite(bdir, HIGH);
+    Serial.println("same2");
     bstepdirection = 1;
-    bstepdifference = abs(bstepcount - stepperBtarget);
+    bstepdifference = bdegreesstep(bstepdegrees(abs(bstepcount - stepperBtarget)));
   }
   else {
     bstepdifference = 0;  
@@ -414,18 +444,41 @@ void inversekinematics(waypoint target) {
   else {
     cstepdifference = 0;  
   }
+  Serial.print("b step difference = ");
+  Serial.println(bstepdegrees(bstepdifference));
 }
 
 float astepdegrees(long steps) {
-  return (float)steps / aratio;
+  int degreescalc = (float)steps / aratio;
+  while(degreescalc > 360) {
+    degreescalc -= 360.0;
+  }
+  while(degreescalc < 0 && degreescalc) {
+    degreescalc += 360.0;
+  }
+  return degreescalc;
 }
 
 float bstepdegrees(long steps) {
-  return (float)steps / bratio;
+  int degreescalc = (float)steps / bratio;
+  while(degreescalc > 360) {
+    degreescalc -= 360.0;
+  }
+  while(degreescalc < 0 && degreescalc) {
+    degreescalc += 360.0;
+  }
+  return degreescalc;
 }
 
 float cstepdegrees(long steps) {
-  return (float)steps / cratio;
+  int degreescalc = (float)steps / cratio;
+  while(degreescalc > 360 && degreescalc) {
+    degreescalc -= 360.0;
+  }
+  while(degreescalc < 0 && degreescalc) {
+    degreescalc += 360.0;
+  }
+  return degreescalc;
 }
 
 long adegreesstep(float deg) {
