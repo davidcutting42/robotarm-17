@@ -19,7 +19,7 @@
 #include <ModbusRtu.h>
 #include <SoftwareSerial.h>
 
-#define stpmode 32 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
+#define stpmode 8 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
 #define dmotstpmode 1
 
 #define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
@@ -104,8 +104,8 @@ const float dratio = 200.0 * dmotstpmode / 360.0;
 
 const unsigned long minmotadelay = 5000 / aratio * 2;
 const unsigned long minmotbdelay = 5000 / bratio * 1.5;
-const unsigned long minmotcdelay = 1000 / cratio;
-const unsigned long minmotddelay = 1000 / dratio;
+const unsigned long minmotcdelay = 10000 / cratio * 5;
+const unsigned long minmotddelay = 10000 / dratio;
 
 unsigned long motadelay = minmotadelay;
 unsigned long motbdelay = minmotbdelay;
@@ -134,7 +134,7 @@ int servobswitch = 0;
 
 int getstream = 0;
 
-long stepdifferenceall = 0;
+//long stepdifferenceall = 0;
 
 void setup() {
   // Set each control pin to an output
@@ -212,12 +212,12 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
+  //stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
  
   slave.poll( au16data, 10 );
   
   if(au16data[6] == 1) {
-    if (stepdifferenceall == 0 && servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount) {
+    if (steppersdone() && servosdone()) {
       if(waypointselect >= 7) {
         au16data[6] = 0;
       }
@@ -240,18 +240,31 @@ void loop() {
       target.dangle = au16data[9];
       target.saangle = au16data[7];
       target.sbangle = au16data[8];
-      target.actiontypexy = 0;
+      target.actiontypexy = 1;
       target.actiontypelift = 1;
       target.actiontypeservos = 0;
+      target.x -= 1000;
+      target.y -= 1000;
       inversekinematics(target);
       getstream = 1;
     }
     movemotors();
-    if(stepdifferenceall == 0 && servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount) {
+    if(steppersdone() && servosdone()) {
       au16data[6] = 0;
       getstream = 0;
     }
   }
+}
+
+bool steppersdone()
+{
+  long stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
+  return (stepdifferenceall == 0);
+}
+
+bool servosdone()
+{
+  return (servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount); 
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -401,7 +414,7 @@ void movemotors() {
   
   switch (servoaswitch) {
     case 0:
-      if(stepdifferenceall == 0 && (servoatargetcount - servoacurrcount) != 0) {
+      if(steppersdone() && (servoatargetcount != servoacurrcount)) {
         servoaswitch = 1;
         servoatimer = micros();
       }
@@ -424,7 +437,7 @@ void movemotors() {
   }
   switch (servobswitch) {
     case 0:
-      if(stepdifferenceall == 0 && (servobtargetcount - servobcurrcount) != 0) {
+      if(steppersdone() && (servobtargetcount != servobcurrcount)) {
         servobswitch = 1;
         servobtimer = micros();
       }
