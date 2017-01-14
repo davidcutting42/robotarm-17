@@ -1,13 +1,12 @@
 # Arduino Modbus Register Table
 # Register:     Register Name:      Source:         Description:
-#   0               xtarget             Master          Target angle for shoulder
-#   1               ytarget             Master          Target angle for elbow
-#   2               bendpreference      Master           Current angle of shoulder
-#   3               basetarget          Master           Current angle of elbow
-#   4               xposition           Slave           Current analogRead Shoulder
-#   5               yposition           Slave           Current analogRead Elbow
-#   6               benddirection       Slave          Rotation of 3D mouse 
-#   7               baseangle           Slave          Target angle of Servo A
+#   0               xtarget             Master          Target x coordinate
+#   1               ytarget             Master          Target y coordinate
+#   2               bendpreference      Master          Bending preference
+#   3               basetarget          Master          Target angle for axis A
+#   4               armready            Slave           0 = last command not executed 1 = last command completed
+#   5               benddirection       Slave           Current bend direction 
+#   6               baseangle           Slave           Current axis A angle
 
 from Tkinter import *
 import math
@@ -22,7 +21,10 @@ except:
     try:
         arduino = minimalmodbus.Instrument('/dev/ttyACM1', 1) # port name, slave address (in decimal)
     except:
-        arduino = minimalmodbus.Instrument('/dev/ttyACM2', 1) # port name, slave address (in decimal)
+        try:
+            arduino = minimalmodbus.Instrument('/dev/ttyACM2', 1) # port name, slave address (in decimal)
+        except:
+            arduino = minimalmodbus.Instrument('/dev/ttyACM3', 1) # port name, slave address (in decimal)
 
 arduino.serial.baudrate = 57600
 

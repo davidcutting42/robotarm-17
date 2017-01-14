@@ -1,5 +1,39 @@
+/*  Modbus Register Table (Arduino is slave)
+ *  Register:       Register Name:      Source:         Description:
+ *  0               xtarget             Master          Target x coordinate (mm)
+ *  1               ytarget             Master          Target y coordinate (mm)
+ *  2               bendpreference      Master          Bend preference (0 or 1)
+ *  3               basetarget          Master          Target angle for base motor (degrees)
+ *  4               steppersinposition  Slave           0 = last command not executed, 1 = last command completed
+ *  5               benddirection       Slave           Current bend direction
+ *  6               mode                Master          0 = idle, 1 = run, 2 = stream (calibrate), 3 = set current position as zero
+ *  7               servapos            Master          Target position (degrees) of servo A
+ *  8               servbpos            Master          Target position (degrees) of servo B
+ *  9               motdangle           Master          Motor d target position (degrees)
+ */
+
 #include "MyTypes.h"
+
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+#include <ModbusRtu.h>
+#include <SoftwareSerial.h>
+
 #define stpmode 32 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
+#define dmotstpmode 1
+
+#define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+#define BSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+
+int mode = 0; // 0 = no state, 1  
+
+// Modbus object declaration
+Modbus slave(1,0,0); // this is slave @1 and RS-232 or USB-FTDI
 
 // Set pin numbers for steppers A, B, and C
 const int astep = 4;
@@ -8,86 +42,99 @@ const int bstep = 5;
 const int bdir = 27;
 const int cstep = 6;
 const int cdir = 28;
+const int dstep = A4;
+const int ddir = A3;
 
 // Set pin numbers for stepping mode selection
 const int stpmode0 = 32;
 const int stpmode1 = 33;
 const int stpmode2 = 34;
 
-// Cartesian coordinate calculation variables (mm)
-const int xoffset = 40;
-const int yoffset = 27;
-
-const int startbutton = A2;
-
-// Set lengths of humerus and ulna
+// Set lengths of humerus and ulna (arm links)
 float h = 249.2;
 float u = 249.2;
 
+// Data array for Modbus network sharing
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-
-// Create arrays used to store the position of each predefined waypoint {xcoord, ycoord, leftorrightbend, baseangle}
-waypoint homepos = {0, h + u, 1, 90}; 
-waypoint stack1 = {-280, -213, 0, 0};
-waypoint stack2 = {85, 68, 1, 0};
-waypoint stack3 = {295, 277, 0, 0};
-waypoint stack4 = {85, 487, 1, 0};
-waypoint stack5 = {-124, 277, 0, 0};
-waypoint targetcenter = {85, 277, 0, 0};
+// Create arrays used to store the position of each predefined waypoint {xcoord, ycoord, leftorrightbend, baseangle, stepper d angle, servoaangle, servobangle}
+waypoint homepos = {0, h + u, 1, 90, 0, 0, 0, 1, 1, 1}; 
+waypoint stack1 = {-280, -213, 0, 0, 90, 0, 180, 0, 1, 0};
+waypoint stack2 = {85, 68, 1, 0, 180, 180, 180, 1, 0, 1};
+waypoint stack3 = {295, 277, 0, 0, 270, 180, 180, 0, 0, 1};
+waypoint stack4 = {85, 487, 1, 0, 0, 90, 180, 1, 1, 0};
+waypoint stack5 = {-124, 277, 0, 0, 90, 30, 50, 1, 1, 1};
+waypoint targetcenter = {85, 277, 0, 0, 180, 60, 40, 0, 0, 0};
 
 waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
 
 // Array for storing calculated angles
 float angles[2];
 
-// Number of loops through main loop
-int k = 1;
-
 long astepcount = adegreesstep(90);
 long bstepcount = bdegreesstep(0);
 long cstepcount = cdegreesstep(0);
+long dstepcount = ddegreesstep(0);
 
 long astepdifference = 0;
 long bstepdifference = 0;
 long cstepdifference = 0;
+long dstepdifference = 0;
 
 int astepdirection = 0;
 int bstepdirection = 0;
 int cstepdirection = 0;
+int dstepdirection = 0;
 
 int astepswitch = 0;
 int bstepswitch = 0;
 int cstepswitch = 0;
+int dstepswitch = 0;
 
 unsigned long astepswitchtimer = 0;
 unsigned long bstepswitchtimer = 0;
 unsigned long cstepswitchtimer = 0;
-int effectorpositionstatus = 0;
-
-int runonstarta = 1;
+unsigned long dstepswitchtimer = 0;
 
 // Set ratio for number of steps to number of degrees
 const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
 const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
 const float cratio = 200.0 * 50.0 * stpmode / 360.0;
+const float dratio = 200.0 * dmotstpmode / 360.0;
 
-const unsigned long motadelay = 5000 / aratio * 2;
-const unsigned long motbdelay = 5000 / bratio * 1.5;
-const unsigned long motcdelay = 1000 / cratio;
+const unsigned long minmotadelay = 5000 / aratio * 2;
+const unsigned long minmotbdelay = 5000 / bratio * 1.5;
+const unsigned long minmotcdelay = 1000 / cratio;
+const unsigned long minmotddelay = 1000 / dratio;
 
-unsigned long currentmotadelay = motadelay;
-unsigned long currentmotbdelay = motbdelay;
-
-const unsigned long motamaxdelay = motadelay * 1000;
-const unsigned long motbmaxdelay = motbdelay * 1000;
-
-const int motascalefactor = 100;
-const int motbscalefactor = 100;
-
-int motadelayfactor = 0;
-int motbdelayfactor = 0;
+unsigned long motadelay = minmotadelay;
+unsigned long motbdelay = minmotbdelay;
+unsigned long motcdelay = minmotcdelay;
+unsigned long motddelay = minmotddelay;
 
 int waypointselect = 1;
+
+int servoatargetcount = 0;
+int servobtargetcount = 0;
+
+int servoacurrcount = 0;
+int servobcurrcount = 0;
+
+const unsigned long minservoadelay = 1000;
+const unsigned long minservobdelay = 1000;
+
+unsigned long servoadelay = minservoadelay;
+unsigned long servobdelay = minservobdelay;
+
+long servoatimer = 0;
+long servobtimer = 0;
+
+int servoaswitch = 0;
+int servobswitch = 0;
+
+int getstream = 0;
+
+long stepdifferenceall = 0;
 
 void setup() {
   // Set each control pin to an output
@@ -97,18 +144,22 @@ void setup() {
   pinMode(bdir, OUTPUT);
   pinMode(cstep, OUTPUT);
   pinMode(cdir, OUTPUT);
+  pinMode(dstep, OUTPUT);
+  pinMode(ddir, OUTPUT);
+  
   pinMode(stpmode0, OUTPUT);
   pinMode(stpmode1, OUTPUT);
   pinMode(stpmode2, OUTPUT);
-  pinMode(startbutton, INPUT_PULLUP);
 
   digitalWrite(astep, LOW);
   digitalWrite(bstep, LOW);
   digitalWrite(cstep, LOW);
+  digitalWrite(dstep, LOW);
   
   digitalWrite(adir, LOW);
   digitalWrite(bdir, LOW);
   digitalWrite(cdir, LOW);
+  digitalWrite(ddir, LOW);
 
   // Set stepping mode based on the value of stpmode 
   
@@ -149,43 +200,80 @@ void setup() {
     digitalWrite(stpmode2, LOW);
   }
 
-  Serial.begin(9600);
+  slave.begin( 57600 );
   
-  //astepdifference=50*stpmode;
-  //bstepdifference=50*stpmode*3/2;
-  //cstepdifference=50*stpmode*50;
+  pwm.begin();
   
-  
+  pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
 }
 
+/////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// MAIN LOOP //////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
 void loop() {
-  long stepdifferenceall = astepdifference + bstepdifference + cstepdifference;
+  stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
  
-  if (stepdifferenceall == 0 && waypointselect < 7) {
-    inversekinematics(wp[waypointselect]);
-    waypointselect++;
-    delay(500);
-  }
-    
+  slave.poll( au16data, 10 );
   
+  if(au16data[6] == 1) {
+    if (stepdifferenceall == 0 && servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount) {
+      if(waypointselect >= 7) {
+        au16data[6] = 0;
+      }
+      else {
+        inversekinematics(wp[waypointselect]);
+        waypointselect++; 
+        delay(500);
+      }
+    }
+    movemotors();
+  }
+  
+  else if(au16data[6] == 2) {
+    if(getstream == 0) { 
+      waypoint target;
+      target.x = au16data[0];
+      target.y = au16data[1];
+      target.lhrh = au16data[2];
+      target.base = au16data[3];
+      target.dangle = au16data[9];
+      target.saangle = au16data[7];
+      target.sbangle = au16data[8];
+      target.actiontypexy = 0;
+      target.actiontypelift = 1;
+      target.actiontypeservos = 0;
+      inversekinematics(target);
+      getstream = 1;
+    }
+    movemotors();
+    if(stepdifferenceall == 0 && servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount) {
+      au16data[6] = 0;
+      getstream = 0;
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// MOVE MOTORS //////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+void movemotors() {
   switch (astepswitch) {
     case 0:
       if ((astepdifference != 0) && (cstepdifference == 0)) {
         astepswitch = 1;
         astepswitchtimer = micros();
-        currentmotadelay = motamaxdelay;
-        motadelayfactor = 0;
       }
       break;
     case 1:
-      if(micros() >= (astepswitchtimer + currentmotadelay)) {
+      if(micros() >= (astepswitchtimer + motadelay)) {
         digitalWrite(astep, LOW);
         astepswitchtimer = micros();
         astepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (astepswitchtimer + currentmotadelay)) {
+      if(micros() >= (astepswitchtimer + motadelay)) {
         digitalWrite(astep, HIGH);
         astepswitchtimer = micros();
         if(astepdirection == 0) {
@@ -202,11 +290,6 @@ void loop() {
         else {
           astepswitch = 1;
         }
-        
-        if(motadelayfactor <= motascalefactor) {
-          motadelayfactor++;
-          currentmotadelay = ((pow(motadelayfactor - motascalefactor, 2) / 4) + motadelay);
-        }
       }
       break;
   }
@@ -217,19 +300,17 @@ void loop() {
       if ((bstepdifference != 0) && (cstepdifference == 0)) {
         bstepswitch = 1;
         bstepswitchtimer = micros();  
-        currentmotbdelay = motbmaxdelay;
-        motbdelayfactor = 0;
       }
       break;
     case 1:
-      if(micros() >= (bstepswitchtimer + currentmotbdelay)) {
+      if(micros() >= (bstepswitchtimer + motbdelay)) {
         digitalWrite(bstep, LOW);
         bstepswitchtimer = micros();
         bstepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (bstepswitchtimer + currentmotbdelay)) {
+      if(micros() >= (bstepswitchtimer + motbdelay)) {
         digitalWrite(bstep, HIGH);
         bstepswitchtimer = micros();
         if(bstepdirection == 0) {
@@ -244,10 +325,6 @@ void loop() {
         }
         else {
           bstepswitch = 1;
-        }
-        if(motbdelayfactor <= motbscalefactor) {
-          motbdelayfactor++;
-          currentmotbdelay = ((pow(motbdelayfactor - motbscalefactor, 2) / 4) + motbdelay);
         }
       }
       break;
@@ -287,9 +364,88 @@ void loop() {
       }
       break;
   }
+  switch (dstepswitch) {
+    case 0:
+      if (dstepdifference != 0) {
+        dstepswitch = 1;
+        dstepswitchtimer = micros();
+      }
+      break;
+    case 1:
+      if(micros() >= (dstepswitchtimer + motddelay)) {
+        digitalWrite(dstep, LOW);
+        dstepswitchtimer = micros();
+        dstepswitch = 2;
+      }
+      break;
+    case 2:
+      if(micros() >= (dstepswitchtimer + motddelay)) {
+        digitalWrite(dstep, HIGH);
+        dstepswitchtimer = micros();
+        if(dstepdirection == 0) {
+          dstepcount--;
+        }
+        else if(dstepdirection == 1) {
+          dstepcount++;
+        }
+        dstepdifference--;
+        if(dstepdifference == 0) {
+          dstepswitch = 0;
+        }
+        else {
+          dstepswitch = 1;
+        }
+      }
+      break;
+  }
   
+  switch (servoaswitch) {
+    case 0:
+      if(stepdifferenceall == 0 && (servoatargetcount - servoacurrcount) != 0) {
+        servoaswitch = 1;
+        servoatimer = micros();
+      }
+      break;
+    case 1:
+      if(micros() >= (servoatimer + servoadelay)) {
+        if(servoacurrcount > servoatargetcount) {
+          servoacurrcount--;
+        }
+        else if(servoacurrcount < servoatargetcount) {
+          servoacurrcount++;
+        }
+        else {
+          servoaswitch = 0;
+        } 
+        pwm.setPWM(0, 0, servoacurrcount);
+        servoatimer = micros();
+      }
+      break;
+  }
+  switch (servobswitch) {
+    case 0:
+      if(stepdifferenceall == 0 && (servobtargetcount - servobcurrcount) != 0) {
+        servobswitch = 1;
+        servobtimer = micros();
+      }
+      break;
+    case 1:
+      if(micros() >= (servobtimer + servobdelay)) {
+        if(servobcurrcount > servobtargetcount) {
+          servobcurrcount--;
+        }
+        else if(servobcurrcount < servobtargetcount) {
+          servobcurrcount++;
+        }
+        else {
+          servobswitch = 0;
+        } 
+        pwm.setPWM(1, 0, servobcurrcount);
+        servobtimer = micros();
+      }
+      break;
+  }
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// INVERSE KINEMATICS //////////////////////////////
@@ -299,11 +455,6 @@ void inversekinematics(waypoint target) {
   //Calculating the two different possibilities for the beta angle
   double beta1 = atan2(  (sqrt(1-pow(((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)), 2))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
   double beta2 = atan2((-(sqrt(1-pow(((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)), 2)))),((pow(target.x, 2)+pow(target.y, 2)-pow(h, 2)-pow(u, 2))/(2.0 * h * u)));
-  
-  Serial.print("beta1 = ");
-  Serial.println(beta1);
-  Serial.print("beta2 = ");
-  Serial.println(beta2);
 
   // Calculating the two different possibilities for the alpha angle
   float k2a = u * sin(beta1);
@@ -329,12 +480,6 @@ void inversekinematics(waypoint target) {
   while(trigresults[3] < 0) {
     trigresults[3] += 360;
   }
-  
-  Serial.println("NEWWWWWWW");
-  Serial.println(trigresults[0]);
-  Serial.println(trigresults[1]);
-  Serial.println(trigresults[2]);
-  Serial.println(trigresults[3]);
 
   // Variables for check that ensures angles are within permissible range
   boolean checkone = true;
@@ -371,20 +516,11 @@ void inversekinematics(waypoint target) {
     angles[0] = trigresults[1];
     angles[1] = trigresults[3];
   }
-
-  // If neither of the angle sets is in an acceptable range, the software will print an error message
-  else {
-    Serial.println("This point is not within the range of acceptable values for the parameters given.");
-  }
   
-  Serial.println(angles[0]);
-  Serial.println(angles[1]);
-
   long stepperAtarget = adegreesstep(angles[0]);
   long stepperBtarget = bdegreesstep(angles[1]);
   long stepperCtarget = cdegreesstep(target.base);
-  
-  
+  long stepperDtarget = ddegreesstep(target.dangle);
   
   if(stepperAtarget < astepcount) {
     digitalWrite(adir, LOW);
@@ -400,30 +536,20 @@ void inversekinematics(waypoint target) {
   if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
     digitalWrite(bdir, LOW);
     bstepdirection = 0;
-    Serial.println("Compare Angles (2):");
-    Serial.println(bstepdegrees(stepperBtarget));
-    Serial.println(bstepdegrees(bstepcount));
-    Serial.println("opposite1");
     bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - bstepcount + stepperBtarget));
   }
   else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
     digitalWrite(bdir, HIGH);
     bstepdirection = 1;
-    Serial.println("Compare Angles (2):");
-    Serial.println(bstepdegrees(stepperBtarget));
-    Serial.println(bstepdegrees(bstepcount));
-    Serial.println("opposite2");
     bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - stepperBtarget + bstepcount));
   }
   else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
     digitalWrite(bdir, LOW);
-    Serial.println("same1");
     bstepdirection = 0;
     bstepdifference = bdegreesstep(bstepdegrees(stepperBtarget - bstepcount));
   }
   else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
     digitalWrite(bdir, HIGH);
-    Serial.println("same2");
     bstepdirection = 1;
     bstepdifference = bdegreesstep(bstepdegrees(bstepcount - stepperBtarget));
   }
@@ -444,8 +570,30 @@ void inversekinematics(waypoint target) {
   else {
     cstepdifference = 0;  
   }
-  Serial.print("b step difference = ");
-  Serial.println(bstepdegrees(bstepdifference));
+  
+  if(stepperDtarget < dstepcount) {
+    digitalWrite(ddir, HIGH);
+    dstepdirection = 0;
+    dstepdifference = dstepcount - stepperDtarget; 
+  }
+  else if(stepperDtarget > dstepcount) {
+    digitalWrite(ddir, LOW);
+    dstepdirection = 1;
+    dstepdifference = stepperDtarget - dstepcount;
+  }
+  else {
+    dstepdifference = 0;  
+  }
+  
+  servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
+  servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
+
+  motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
+  motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
+  motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 5;
+  motddelay = target.actiontypexy ? minmotddelay : minmotddelay * 5;
+  servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
+  servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
 }
 
 float astepdegrees(long steps) {
@@ -481,6 +629,17 @@ float cstepdegrees(long steps) {
   return degreescalc;
 }
 
+float dstepdegrees(long steps) {
+  int degreescalc = (float)steps / dratio;
+  while(degreescalc > 360 && degreescalc) {
+    degreescalc -= 360.0;
+  }
+  while(degreescalc < 0 && degreescalc) {
+    degreescalc += 360.0;
+  }
+  return degreescalc;
+}
+
 long adegreesstep(float deg) {
   return (long)(deg * aratio);
 }
@@ -491,4 +650,8 @@ long bdegreesstep(float deg) {
 
 long cdegreesstep(float deg) {
   return (long)(deg * cratio);
+}
+
+long ddegreesstep(float deg) {
+  return (long)(deg * dratio);
 }
