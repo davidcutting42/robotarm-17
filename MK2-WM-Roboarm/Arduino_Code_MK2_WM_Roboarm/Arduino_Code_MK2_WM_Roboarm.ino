@@ -55,7 +55,7 @@ float h = 249.2;
 float u = 249.2;
 
 // Data array for Modbus network sharing
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 120, 180, 0 };
 
 // Create arrays used to store the position of each predefined waypoint {xcoord, ycoord, leftorrightbend, baseangle, stepper d angle, servoaangle, servobangle}
 waypoint homepos = {0, h + u, 1, 90, 0, 0, 0, 1, 1, 1}; 
@@ -66,7 +66,18 @@ waypoint stack4 = {85, 487, 1, 0, 0, 90, 180, 1, 1, 0};
 waypoint stack5 = {-124, 277, 0, 0, 90, 30, 50, 1, 1, 1};
 waypoint targetcenter = {85, 277, 0, 0, 180, 60, 40, 0, 0, 0};
 
-waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
+//waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
+
+waypoint wp[] = {
+  {0, 498, 1, 90, 0, 60, 180, 0, 0, 0},
+  {0, 498, 1, 0, 0, 60, 180, 0, 0, 0},
+  {-110, -2, 1, 0, 0, 60, 180, 0, 0, 0},
+  {-155, -182, 1, 0, 50, 60, 180, 0, 1, 1},
+  {-205, -202, 1, 0, 50, 60, 180, 0, 1, 1},
+  {-205, 178, 1, 0, 50, 60, 180, 0, 1, 1},
+  {-205, 178, 1, 0, 350, 60, 180, 0, 1, 1},
+  {-155, 228, 1, 0, 350, 60, 180, 0, 1, 1}
+};
 
 // Array for storing calculated angles
 float angles[2];
@@ -112,7 +123,7 @@ unsigned long motbdelay = minmotbdelay;
 unsigned long motcdelay = minmotcdelay;
 unsigned long motddelay = minmotddelay;
 
-int waypointselect = 1;
+int waypointselect = 0;
 
 int servoatargetcount = 0;
 int servobtargetcount = 0;
@@ -205,6 +216,10 @@ void setup() {
   pwm.begin();
   
   pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
+  
+  pwm.setPWM(1, 0, map(120, 0, 180, ASERVOMIN, ASERVOMAX));
+  pwm.setPWM(0, 0, map(180, 0, 180, BSERVOMIN, BSERVOMAX));
+  delay(100);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -218,7 +233,7 @@ void loop() {
   
   if(au16data[6] == 1) {
     if (steppersdone() && servosdone()) {
-      if(waypointselect >= 7) {
+      if(waypointselect >= 8) {
         au16data[6] = 0;
       }
       else {
@@ -253,6 +268,12 @@ void loop() {
       au16data[6] = 0;
       getstream = 0;
     }
+  }
+  else if(au16data[6] == 3) {
+    astepcount = adegreesstep(90);
+    bstepcount = bdegreesstep(0);
+    cstepcount = cdegreesstep(0);
+    dstepcount = ddegreesstep(0); 
   }
 }
 
@@ -430,7 +451,7 @@ void movemotors() {
         else {
           servoaswitch = 0;
         } 
-        pwm.setPWM(0, 0, servoacurrcount);
+        pwm.setPWM(1, 0, servoacurrcount);
         servoatimer = micros();
       }
       break;
@@ -453,7 +474,7 @@ void movemotors() {
         else {
           servobswitch = 0;
         } 
-        pwm.setPWM(1, 0, servobcurrcount);
+        pwm.setPWM(0, 0, servobcurrcount);
         servobtimer = micros();
       }
       break;
@@ -604,7 +625,7 @@ void inversekinematics(waypoint target) {
   motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
   motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
   motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 5;
-  motddelay = target.actiontypexy ? minmotddelay : minmotddelay * 5;
+  motddelay = minmotddelay;
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
   servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
 }
