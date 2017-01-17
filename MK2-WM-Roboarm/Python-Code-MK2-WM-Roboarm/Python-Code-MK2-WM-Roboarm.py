@@ -29,9 +29,6 @@ except:
 
 arduino.serial.baudrate = 57600
 
-# Wait 2 Seconds for all communications channels to come on board.
-time.sleep(2)
-
 #Create Tkinter Window
 root = Tk()
 
@@ -44,168 +41,169 @@ servobpos = 180 #opposite is 20 (Flip)
 motdangle = 0
 mode = 2
 
-def updatearduinoregisters(): #Function for stepper control and spacenav input
+def updatearduinoregisters(event): #Function for stepper control and spacenav input
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle]
     #print registers
     arduino.write_registers(0, registers)
     root.update_idletasks()
-    
-def xdecrement():
+
+xval = Label(root, text=xtarget)
+xval.grid(row=0, column=2)
+
+def xdecrement(event):
     global xtarget
     xtarget -= 1
     xval.config(text=xtarget)
-    updatearduinoregisters()
     
-def xincrement():
+def xincrement(event):
     global xtarget
     xtarget += 1
     xval.config(text=xtarget)
-    updatearduinoregisters()
-    
 
 xlab = Label(root, text="X: ")
 xlab.grid(row=0, column=0)
-xinc = Button(root, text="<", command=xdecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-xinc.grid(row=0, column=1)
-xval = Label(root, text=xtarget)
-xval.grid(row=0, column=2)
-xinc = Button(root, text=">", command=xincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-xinc.grid(row=0, column=3)
 
-    
-def ydecrement():
+root.bind("<Left>",xdecrement)
+root.bind("<Right>",xincrement)
+
+
+yval = Label(root, text=ytarget)
+yval.grid(row=1, column=2)
+
+def ydecrement(event):
     global ytarget
     ytarget -= 1
     yval.config(text=ytarget)
-    updatearduinoregisters()
     
-def yincrement():
+def yincrement(event):
     global ytarget
     ytarget += 1
     yval.config(text=ytarget)
-    updatearduinoregisters()
+    
     
 ylab = Label(root, text="Y: ")
 ylab.grid(row=1, column=0)
-yinc = Button(root, text="<", command=ydecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-yinc.grid(row=1, column=1)
-yval = Label(root, text=ytarget)
-yval.grid(row=1, column=2)
-yinc = Button(root, text=">", command=yincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-yinc.grid(row=1, column=3)
 
-    
-def benddecrement():
+root.bind("<Up>",yincrement)
+root.bind("<Down>",ydecrement)
+
+
+bendval = Label(root, text=bendpreference)
+bendval.grid(row=2, column=2)
+ 
+def benddecrement(event):
     global bendpreference
     bendpreference = 0
     bendval.config(text=bendpreference)
-    updatearduinoregisters()
     
-def bendincrement():
+def bendincrement(event):
     global bendpreference
     bendpreference = 1
     bendval.config(text=bendpreference)
-    updatearduinoregisters()
     
-
 bendlab = Label(root, text="Bend: ")
 bendlab.grid(row=2, column=0)
-bendinc = Button(root, text="<", command=benddecrement, height=3, width=8, bg='white')
-bendinc.grid(row=2, column=1)
-bendval = Label(root, text=bendpreference)
-bendval.grid(row=2, column=2)
-bendinc = Button(root, text=">", command=bendincrement, height=3, width=8, bg='white')
-bendinc.grid(row=2, column=3)
-    
-def basedecrement():
-    global basetarget
-    basetarget -= 1 
-    baseval.config(text=basetarget)
-    updatearduinoregisters()
-    
-def baseincrement():
-    global basetarget
-    basetarget += 1
-    baseval.config(text=basetarget)
-    updatearduinoregisters()
-    
 
-baselab = Label(root, text="Base: ")
-baselab.grid(row=3, column=0)
-baseinc = Button(root, text="<", command=basedecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-baseinc.grid(row=3, column=1)
+root.bind("<F2>",bendincrement)
+root.bind("<F1>",benddecrement)
+
 baseval = Label(root, text=basetarget)
 baseval.grid(row=3, column=2)
-baseinc = Button(root, text=">", command=baseincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-baseinc.grid(row=3, column=3)
     
-def servoadecrement():
-    global servoapos
-    servoapos -= 1
-    servoaval.config(text=servoapos)
-    updatearduinoregisters()
+def basedecrement(event):
+    global basetarget
+    basetarget -= 1
+    if(basetarget < 0):
+        basetarget = 0
+    baseval.config(text=basetarget)
     
-def servoaincrement():
-    global servoapos
-    servoapos += 1
-    servoaval.config(text=servoapos)
-    updatearduinoregisters()
     
+def baseincrement(event):
+    global basetarget
+    basetarget += 1
+    if(basetarget > 95):
+        basetarget = 95
+    baseval.config(text=basetarget)
+    
+baselab = Label(root, text="Base: ")
+baselab.grid(row=3, column=0)
 
-servoalab = Label(root, text="Servo A: ")
-servoalab.grid(row=4, column=0)
-servoainc = Button(root, text="<", command=servoadecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-servoainc.grid(row=4, column=1)
+root.bind("<Shift-Up>",baseincrement)
+root.bind("<Shift-Down>",basedecrement)
+
 servoaval = Label(root, text=servoapos)
 servoaval.grid(row=4, column=2)
-servoainc = Button(root, text=">", command=servoaincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-servoainc.grid(row=4, column=3)
+  
+def servoadecrement(event):
+    global servoapos
+    servoapos -= 1
+    if(servoapos < 45):
+        servoapos = 45
+    servoaval.config(text=servoapos)
+      
+def servoaincrement(event):
+    global servoapos
+    servoapos += 1
+    if(servoapos > 120):
+        servoapos = 120
+    servoaval.config(text=servoapos)
     
-def servobdecrement():
+servoalab = Label(root, text="Servo A: ")
+servoalab.grid(row=4, column=0)
+
+root.bind("9",servoadecrement)
+root.bind("0",servoaincrement)
+
+servobval = Label(root, text=servobpos)
+servobval.grid(row=5, column=2)
+
+def servobdecrement(event):
     global servobpos
     servobpos -= 1
+    if(servobpos < 20):
+        servobpos = 20
     servobval.config(text=servobpos)
-    updatearduinoregisters()
     
-def servobincrement():
+    
+def servobincrement(event):
     global servobpos
     servobpos += 1
+    if(servobpos > 180):
+        servobpos = 180
     servobval.config(text=servobpos)
-    updatearduinoregisters()
     
 
 servoblab = Label(root, text="Servo B: ")
 servoblab.grid(row=5, column=0)
-servobinc = Button(root, text="<", command=servobdecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-servobinc.grid(row=5, column=1)
-servobval = Label(root, text=servobpos)
-servobval.grid(row=5, column=2)
-servobinc = Button(root, text=">", command=servobincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-servobinc.grid(row=5, column=3)
 
-def motddecrement():
+root.bind("[",servobdecrement)
+root.bind("]",servobincrement)
+
+motdval = Label(root, text=motdangle)
+motdval.grid(row=6, column=2)
+
+def motddecrement(event):
     global motdangle 
     motdangle -= 1
+    if(motdangle < 0):
+        motdangle = 0
     motdval.config(text=motdangle)
-    updatearduinoregisters()
     
-def motdincrement():
+def motdincrement(event):
     global motdangle 
     motdangle += 1
-    motdval.config(text=motdangle)
-    updatearduinoregisters()
-    
+    if(motdangle > 360):
+        motdangle = 360
+    motdval.config(text=motdangle)  
 
 motdlab = Label(root, text="Motor D: ")
 motdlab.grid(row=6, column=0)
-motdinc = Button(root, text="<", command=motddecrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-motdinc.grid(row=6, column=1)
-motdval = Label(root, text=motdangle)
-motdval.grid(row=6, column=2)
-motdinc = Button(root, text=">", command=motdincrement, height=3, width=8, bg='orange red', repeatdelay=500, repeatinterval=100)
-motdinc.grid(row=6, column=3)
 
-def printresults():
+root.bind(",",motddecrement)
+root.bind(".",motdincrement)
+
+
+def printresults(event):
     global xtarget
     global ytarget
     global bendpreference
@@ -213,10 +211,11 @@ def printresults():
     global servoapos
     global servobpos
     global motdangle
-    print "{}, {}, {}, {}, {}, {}, {}, 0, 0, 0".format(xtarget, ytarget, bendpreference, basetarget, motdangle, servoapos, servobpos)
+    f = open("waypoints.txt", "a")
+    f.writeline("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle))
+    f.close()
 
-printresults = Button(root, text="Print", command=printresults, height=3, width=8, bg='green')
-printresults.grid(row=7, column=2)
+root.bind("p",printresults)
 
 def zero():
     global xtarget
@@ -235,12 +234,25 @@ def zero():
     servobpos = 180 #opposite is 20 (Flip)
     motdangle = 0
     mode = 3
-    updatearduinoregisters()
+    updatearduinoregisters(0)
     mode = 2
 
-zero = Button(root, text="Zero", command=zero, height=3, width=8, bg='red')
-zero.grid(row=7, column=3)
+zero = Button(root, text="Zero", command=zero, height=2, width=8, bg='navy blue', fg='white')
+zero.grid(row=7, column=2)
 
+root.bind("<Enter>",updatearduinoregisters)
+
+def runnext():
+    raw = f.readline()
+    wapoint = [int(x) for x in raw.split(',') if x]
+    wapoint[0] += 1000
+    wapoint[1] += 1000
+    print wapoint
+    arduino.write_registers(0, wapoint)
+    root.update_idletasks()
+
+runnext = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')
+runnext.grid(row=7, column=0)
 
 #root.after(1, updateSteppers)
 root.mainloop()
