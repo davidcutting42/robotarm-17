@@ -43,6 +43,7 @@ servoapos = 110 #opposite is 45 (Fork)
 servobpos = 180 #opposite is 20 (Flip)
 motdangle = 0
 mode = 2
+speed=0
 
 def updatearduinoregisters(event): #Function for stepper control and spacenav input
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle]

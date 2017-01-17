@@ -57,32 +57,6 @@ float u = 249.2;
 // Data array for Modbus network sharing
 uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 120, 180, 0 };
 
-// Create arrays used to store the position of each predefined waypoint {xcoord, ycoord, leftorrightbend, baseangle, stepper d angle, servoaangle, servobangle}
-waypoint homepos = {0, h + u, 1, 90, 0, 0, 0, 1, 1, 1}; 
-waypoint stack1 = {-280, -213, 0, 0, 90, 0, 180, 0, 1, 0};
-waypoint stack2 = {85, 68, 1, 0, 180, 180, 180, 1, 0, 1};
-waypoint stack3 = {295, 277, 0, 0, 270, 180, 180, 0, 0, 1};
-waypoint stack4 = {85, 487, 1, 0, 0, 90, 180, 1, 1, 0};
-waypoint stack5 = {-124, 277, 0, 0, 90, 30, 50, 1, 1, 1};
-waypoint targetcenter = {85, 277, 0, 0, 180, 60, 40, 0, 0, 0};
-
-//waypoint wp[7] = {homepos, stack1, stack2, stack3, stack4, stack5, targetcenter};
-
-waypoint wp[] = {
-  {0, 498, 1, 100, 0, 120, 180, 0, 0, 0},
-  {-130, 435, 1, 15, 0, 120, 180, 0, 0, 0},
-  {-293, 330, 1, 15, 180, 120, 180, 0, 0, 0},
-  {-293, 100, 1, 0, 180, 120, 180, 0, 0, 0},
-  {-312, -80, 1, 0, 180, 120, 180, 0, 0, 0},
-  {-320, -142, 1, 0, 180, 120, 180, 0, 0, 0},
-  {-320, -142, 1, 0, 180, 20, 180, 0, 0, 0},
-  {-1, 319, 1, 15, 204, 20, 180, 0, 0, 0},
-  {-1, 326, 1, 0, 204, 120, 180, 0, 0, 0},
-  {-43, 326, 1, 0, 204, 120, 180, 0, 0, 0},
-  {-43, 326, 1, 0, 204, 20, 180, 0, 0, 0},
-  {-43, 326, 1, 15, 204, 20, 180, 0, 0, 0}
-};
-
 // Array for storing calculated angles
 float angles[2];
 
@@ -259,7 +233,7 @@ void loop() {
       target.dangle = au16data[9];
       target.saangle = au16data[7];
       target.sbangle = au16data[8];
-      target.actiontypexy = 1;
+      target.actiontypexy = 0;
       target.actiontypelift = 1;
       target.actiontypeservos = 0;
       target.x -= 1000;
