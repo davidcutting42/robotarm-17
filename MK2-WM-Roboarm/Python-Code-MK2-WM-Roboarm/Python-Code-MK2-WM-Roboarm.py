@@ -14,6 +14,7 @@
 from Tkinter import *
 import time
 import minimalmodbus
+f = open("waypoints.txt", "r")
 
 #Find the serial port for the Arduino Mega
 try:
@@ -31,6 +32,8 @@ arduino.serial.baudrate = 57600
 
 #Create Tkinter Window
 root = Tk()
+
+
 
 xtarget = 0
 ytarget = 249 * 2
@@ -211,9 +214,8 @@ def printresults(event):
     global servoapos
     global servobpos
     global motdangle
-    f = open("waypoints.txt", "a")
-    f.writeline("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle))
-    f.close()
+    print("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle))
+
 
 root.bind("p",printresults)
 
