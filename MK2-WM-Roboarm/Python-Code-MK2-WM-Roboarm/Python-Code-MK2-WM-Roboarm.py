@@ -39,14 +39,14 @@ xtarget = 0
 ytarget = 249 * 2
 bendpreference = 1
 basetarget = 0
-servoapos = 120 #opposite is 45 (Fork)
+servoapos = 110 #opposite is 45 (Fork)
 servobpos = 180 #opposite is 20 (Flip)
 motdangle = 0
 mode = 2
 
 def updatearduinoregisters(event): #Function for stepper control and spacenav input
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle]
-    #print registers
+
     arduino.write_registers(0, registers)
     root.update_idletasks()
 
@@ -140,15 +140,15 @@ servoaval.grid(row=4, column=2)
 def servoadecrement(event):
     global servoapos
     servoapos -= 1
-    if(servoapos < 45):
-        servoapos = 45
+    if(servoapos < 10):
+        servoapos = 10
     servoaval.config(text=servoapos)
       
 def servoaincrement(event):
     global servoapos
     servoapos += 1
-    if(servoapos > 120):
-        servoapos = 120
+    if(servoapos > 110):
+        servoapos = 110
     servoaval.config(text=servoapos)
     
 servoalab = Label(root, text="Servo A: ")
@@ -232,7 +232,7 @@ def zero():
     ytarget = 249 * 2
     bendpreference = 1
     basetarget = 0
-    servoapos = 120 #opposite is 45 (Fork)
+    servoapos = 110 #opposite is 45 (Fork)
     servobpos = 180 #opposite is 20 (Flip)
     motdangle = 0
     mode = 3
@@ -242,7 +242,7 @@ def zero():
 zero = Button(root, text="Zero", command=zero, height=2, width=8, bg='navy blue', fg='white')
 zero.grid(row=7, column=2)
 
-root.bind("<Enter>",updatearduinoregisters)
+root.bind("<Return>",updatearduinoregisters)
 
 def runnext():
     raw = f.readline()
@@ -250,6 +250,29 @@ def runnext():
     wapoint[0] += 1000
     wapoint[1] += 1000
     print wapoint
+    global xtarget
+    global ytarget
+    global bendpreference
+    global basetarget
+    global servoapos
+    global servobpos
+    global motdangle
+    xtarget = wapoint[0] - 1000
+    xval.config(text=xtarget)
+    ytarget = wapoint[1] - 1000
+    yval.config(text=ytarget)
+    bendpreference = wapoint[2]
+    bendval.config(text=bendpreference)
+    basetarget = wapoint[3]
+    baseval.config(text=basetarget)
+    servoapos = wapoint[7]
+    servoaval.config(text=servoapos)
+    servobpos = wapoint[8]
+    servobval.config(text=servobpos)
+    motdangle = wapoint[9]
+    motdval.config(text=motdangle)
+    updatearduinoregisters(0)
+    mode = 2
     arduino.write_registers(0, wapoint)
     root.update_idletasks()
 
