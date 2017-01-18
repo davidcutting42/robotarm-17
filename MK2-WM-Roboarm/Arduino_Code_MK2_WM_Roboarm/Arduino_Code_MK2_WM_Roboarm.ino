@@ -25,7 +25,7 @@
 #define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
 #define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 
-#define BSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
 #define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -55,7 +55,7 @@ float h = 249.2;
 float u = 249.2;
 
 // Data array for Modbus network sharing
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 120, 180, 0 };
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0 };
 
 // Array for storing calculated angles
 float angles[2];
@@ -103,8 +103,8 @@ unsigned long motddelay = minmotddelay;
 
 int waypointselect = 0;
 
-int servoatargetcount = 0;
-int servobtargetcount = 0;
+int servoatargetcount = map(110, 0, 180, ASERVOMIN, ASERVOMAX);
+int servobtargetcount = map(180, 0, 180, BSERVOMIN, BSERVOMAX);
 
 int servoacurrcount = 0;
 int servobcurrcount = 0;
@@ -209,6 +209,7 @@ void loop() {
  
   slave.poll( au16data, 10 );
   
+  /*
   if(au16data[6] == 1) {
     if (steppersdone() && servosdone()) {
       if(waypointselect >= 13) {
@@ -222,8 +223,9 @@ void loop() {
     }
     movemotors();
   }
+  */
   
-  else if(au16data[6] == 2) {
+  if(au16data[6] == 2) {
     if(getstream == 0) { 
       waypoint target;
       target.x = au16data[0];

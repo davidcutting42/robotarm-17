@@ -40,10 +40,11 @@ ytarget = 249 * 2
 bendpreference = 1
 basetarget = 0
 servoapos = 110 #opposite is 45 (Fork)
-servobpos = 180 #opposite is 20 (Flip)
+servobpos = 145 #opposite is 20 (Flip)
 motdangle = 0
 mode = 2
 speed=0
+rawlast = 0
 
 def updatearduinoregisters(event): #Function for stepper control and spacenav input
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle]
@@ -164,16 +165,16 @@ servobval.grid(row=5, column=2)
 def servobdecrement(event):
     global servobpos
     servobpos -= 1
-    if(servobpos < 20):
-        servobpos = 20
+    if(servobpos < 0):
+        servobpos = 0
     servobval.config(text=servobpos)
     
     
 def servobincrement(event):
     global servobpos
     servobpos += 1
-    if(servobpos > 180):
-        servobpos = 180
+    if(servobpos > 145):
+        servobpos = 145
     servobval.config(text=servobpos)
     
 
@@ -245,7 +246,11 @@ zero.grid(row=7, column=2)
 
 root.bind("<Return>",updatearduinoregisters)
 
+
+
 def runnext():
+    global rawlast
+    rawlast = f.tell()
     raw = f.readline()
     wapoint = [int(x) for x in raw.split(',') if x]
     wapoint[0] += 1000
@@ -278,7 +283,8 @@ def runnext():
     root.update_idletasks()
 
 runnext = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')
-runnext.grid(row=7, column=0)
+runnext.grid(row=7, column=1)
+    
 
 #root.after(1, updateSteppers)
 root.mainloop()
