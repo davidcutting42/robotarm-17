@@ -252,7 +252,7 @@ void loop() {
       target.sbangle = au16data[8];
       target.actiontypexy = au16data[10];
       target.actiontypelift = au16data[11];
-      target.actiontypeservos = 0;
+      target.actiontypeservos = 1;
       target.x -= 1000;
       target.y -= 1000;
       target.dangle -= 1000;

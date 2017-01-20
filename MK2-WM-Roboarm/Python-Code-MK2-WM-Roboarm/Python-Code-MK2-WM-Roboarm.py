@@ -39,7 +39,7 @@ xtarget = 0
 ytarget = 249 * 2
 bendpreference = 1
 basetarget = 0
-servoapos = 110 #opposite is 45 (Fork)
+servoapos = 130 #opposite is 45 (Fork)
 servobpos = 145 #opposite is 20 (Flip)
 motdangle = 0
 mode = 2
@@ -161,8 +161,8 @@ def servoadecrement(event):
 def servoaincrement(event):
     global servoapos
     servoapos += 1
-    if(servoapos > 110):
-        servoapos = 110
+    if(servoapos > 130):
+        servoapos = 130
     servoaval.config(text=servoapos)
     
 servoalab = Label(root, text="Servo A: ")
@@ -306,9 +306,8 @@ def checksequence():
     global stopping
     if(stopping == 0):
         modelocal = arduino.read_register(6)
-        print modelocal
         if(modelocal == 0):
-            print "runnext"
+            time.sleep(0.25);
             runnext()
         root.after(100, checksequence)
     else:
