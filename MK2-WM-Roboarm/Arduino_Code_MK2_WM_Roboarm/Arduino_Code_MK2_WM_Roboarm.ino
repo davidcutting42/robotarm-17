@@ -55,7 +55,7 @@ float h = 249.2;
 float u = 249.2;
 
 // Data array for Modbus network sharing
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0 };
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0 };
 
 // Array for storing calculated angles
 float angles[2];
@@ -93,7 +93,7 @@ const float dratio = 200.0 * dmotstpmode / 360.0;
 
 const unsigned long minmotadelay = 5000 / aratio * 2;
 const unsigned long minmotbdelay = 5000 / bratio * 1.5;
-const unsigned long minmotcdelay = 10000 / cratio * 5;
+const unsigned long minmotcdelay = 10000 / cratio * 2.5;
 const unsigned long minmotddelay = 10000 / dratio;
 
 unsigned long motadelay = minmotadelay;
@@ -207,7 +207,7 @@ void setup() {
 void loop() {
   //stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
  
-  slave.poll( au16data, 10 );
+  slave.poll( au16data, 12 );
   
   /*
   if(au16data[6] == 1) {
@@ -235,11 +235,12 @@ void loop() {
       target.dangle = au16data[9];
       target.saangle = au16data[7];
       target.sbangle = au16data[8];
-      target.actiontypexy = 0;
-      target.actiontypelift = 1;
+      target.actiontypexy = au16data[10];
+      target.actiontypelift = au16data[11];
       target.actiontypeservos = 0;
       target.x -= 1000;
       target.y -= 1000;
+      target.dangle -= 1000;
       inversekinematics(target);
       getstream = 1;
     }

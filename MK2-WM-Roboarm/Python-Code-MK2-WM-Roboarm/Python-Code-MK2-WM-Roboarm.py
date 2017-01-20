@@ -10,6 +10,8 @@
 #   7               servapos            Master          Target position (degrees) of servo A
 #   8               servbpos            Master          Target position (degrees) of servo B
 #   9               motdangle           Master          Motor d target position (degrees)
+#   10              xymode              Master          Mode of X any X axes... 1=Fast, 0=Slow
+#   11              liftmode            Master          Mode of Lift motor... 1=Fast, 0=Slow
 
 from Tkinter import *
 import time
@@ -45,10 +47,11 @@ motdangle = 0
 mode = 2
 speed=0
 rawlast = 0
+xymode = 0
+liftmode = 0
 
 def updatearduinoregisters(event): #Function for stepper control and spacenav input
-    registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle]
-
+    registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle+1000, xymode, liftmode]
     arduino.write_registers(0, registers)
     root.update_idletasks()
 
@@ -190,8 +193,8 @@ motdval.grid(row=6, column=2)
 def motddecrement(event):
     global motdangle 
     motdangle -= 1
-    if(motdangle < 0):
-        motdangle = 0
+    if(motdangle < -360):
+        motdangle = -360
     motdval.config(text=motdangle)
     
 def motdincrement(event):
@@ -216,7 +219,7 @@ def printresults(event):
     global servoapos
     global servobpos
     global motdangle
-    print("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle))
+    print("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, 0, 0".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle))
 
 
 root.bind("p",printresults)
@@ -263,6 +266,8 @@ def runnext():
     global servoapos
     global servobpos
     global motdangle
+    global xymode
+    global liftmode
     xtarget = wapoint[0] - 1000
     xval.config(text=xtarget)
     ytarget = wapoint[1] - 1000
@@ -277,6 +282,8 @@ def runnext():
     servobval.config(text=servobpos)
     motdangle = wapoint[9]
     motdval.config(text=motdangle)
+    xymode = wapoint[10]
+    liftmode = wapoint[11]
     updatearduinoregisters(0)
     mode = 2
     arduino.write_registers(0, wapoint)
