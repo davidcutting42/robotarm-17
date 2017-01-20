@@ -91,9 +91,9 @@ const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
 const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 const float dratio = 200.0 * dmotstpmode / 360.0;
 
-const unsigned long minmotadelay = 5000 / aratio * 2;
-const unsigned long minmotbdelay = 5000 / bratio * 2;
-const unsigned long minmotcdelay = 10000 / cratio * 2.5;
+const unsigned long minmotadelay = 5000 / aratio * 2.5;
+const unsigned long minmotbdelay = 5000 / bratio * 2.5;
+const unsigned long minmotcdelay = 10000 / cratio * 2;
 const unsigned long minmotddelay = 10000 / dratio;
 
 const unsigned long maxmotadelay = minmotadelay * 5;
