@@ -35,8 +35,6 @@ arduino.serial.baudrate = 57600
 #Create Tkinter Window
 root = Tk()
 
-
-
 xtarget = 0
 ytarget = 249 * 2
 bendpreference = 1
@@ -49,8 +47,19 @@ speed=0
 rawlast = 0
 xymode = 0
 liftmode = 0
+stopping = 0
 
 def updatearduinoregisters(event): #Function for stepper control and spacenav input
+    global xtarget
+    global ytarget
+    global bendpreference
+    global basetarget
+    global servoapos
+    global servobpos
+    global motdangle
+    global xymode
+    global liftmode
+    global mode
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle+1000, xymode, liftmode]
     arduino.write_registers(0, registers)
     root.update_idletasks()
@@ -242,7 +251,7 @@ def zero():
     motdangle = 0
     mode = 3
     updatearduinoregisters(0)
-    mode = 2
+    #mode = 2
 
 zero = Button(root, text="Zero", command=zero, height=2, width=8, bg='navy blue', fg='white')
 zero.grid(row=7, column=2)
@@ -268,6 +277,7 @@ def runnext():
     global motdangle
     global xymode
     global liftmode
+    global mode
     xtarget = wapoint[0] - 1000
     xval.config(text=xtarget)
     ytarget = wapoint[1] - 1000
@@ -284,14 +294,35 @@ def runnext():
     motdval.config(text=motdangle)
     xymode = wapoint[10]
     liftmode = wapoint[11]
-    updatearduinoregisters(0)
     mode = 2
+    updatearduinoregisters(0)
     arduino.write_registers(0, wapoint)
     root.update_idletasks()
 
-runnext = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')
-runnext.grid(row=7, column=1)
+runnextbut = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')
+runnextbut.grid(row=7, column=1)
     
+def checksequence():
+    global stopping
+    if(stopping == 0):
+        modelocal = arduino.read_register(6)
+        print modelocal
+        if(modelocal == 0):
+            print "runnext"
+            runnext()
+        root.after(100, checksequence)
+    else:
+        arduino.write_register(6, 0)
+        stopping = 0
 
-#root.after(1, updateSteppers)
+start = Button(root, text='Start', command=checksequence, height=2, width=8, bg='sky blue')
+start.grid(row=7, column=3)
+
+def stopmot():
+    global stopping
+    stopping = 1
+
+stop = Button(root, text='STOP', command=stopmot, height=2, width=8, bg='red')
+stop.grid(row=6, column=3)
+
 root.mainloop()

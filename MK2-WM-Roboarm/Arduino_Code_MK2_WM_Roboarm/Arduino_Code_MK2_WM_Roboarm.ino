@@ -92,14 +92,23 @@ const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 const float dratio = 200.0 * dmotstpmode / 360.0;
 
 const unsigned long minmotadelay = 5000 / aratio * 2;
-const unsigned long minmotbdelay = 5000 / bratio * 1.5;
+const unsigned long minmotbdelay = 5000 / bratio * 2;
 const unsigned long minmotcdelay = 10000 / cratio * 2.5;
 const unsigned long minmotddelay = 10000 / dratio;
+
+const unsigned long maxmotadelay = minmotadelay * 5;
+const unsigned long maxmotbdelay = minmotbdelay * 5;
+
+const long motadelaydecrement = 25;
+const long motbdelaydecrement = motadelaydecrement * bratio / aratio;
 
 unsigned long motadelay = minmotadelay;
 unsigned long motbdelay = minmotbdelay;
 unsigned long motcdelay = minmotcdelay;
 unsigned long motddelay = minmotddelay;
+
+unsigned long motadelayramp = motadelay;
+unsigned long motbdelayramp = motbdelay;
 
 int waypointselect = 0;
 
@@ -278,17 +287,18 @@ void movemotors() {
       if ((astepdifference != 0) && (cstepdifference == 0)) {
         astepswitch = 1;
         astepswitchtimer = micros();
+        motadelayramp = maxmotadelay;
       }
       break;
     case 1:
-      if(micros() >= (astepswitchtimer + motadelay)) {
+      if(micros() >= (astepswitchtimer + motadelayramp)) {
         digitalWrite(astep, LOW);
         astepswitchtimer = micros();
         astepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (astepswitchtimer + motadelay)) {
+      if(micros() >= (astepswitchtimer + motadelayramp)) {
         digitalWrite(astep, HIGH);
         astepswitchtimer = micros();
         if(astepdirection == 0) {
@@ -304,6 +314,9 @@ void movemotors() {
         }
         else {
           astepswitch = 1;
+          if(motadelayramp > motadelay) {
+            motadelayramp -= motadelaydecrement;
+          }
         }
       }
       break;
@@ -315,17 +328,18 @@ void movemotors() {
       if ((bstepdifference != 0) && (cstepdifference == 0)) {
         bstepswitch = 1;
         bstepswitchtimer = micros();  
+        motbdelayramp = maxmotbdelay;
       }
       break;
     case 1:
-      if(micros() >= (bstepswitchtimer + motbdelay)) {
+      if(micros() >= (bstepswitchtimer + motbdelayramp)) {
         digitalWrite(bstep, LOW);
         bstepswitchtimer = micros();
         bstepswitch = 2;
       }
       break;
     case 2:
-      if(micros() >= (bstepswitchtimer + motbdelay)) {
+      if(micros() >= (bstepswitchtimer + motbdelayramp)) {
         digitalWrite(bstep, HIGH);
         bstepswitchtimer = micros();
         if(bstepdirection == 0) {
@@ -340,6 +354,9 @@ void movemotors() {
         }
         else {
           bstepswitch = 1;
+          if(motbdelayramp > motbdelay) {
+            motbdelayramp -= motbdelaydecrement;
+          }
         }
       }
       break;
@@ -605,7 +622,7 @@ void inversekinematics(waypoint target) {
 
   motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
   motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
-  motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 5;
+  motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 3;
   motddelay = minmotddelay;
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
   servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
