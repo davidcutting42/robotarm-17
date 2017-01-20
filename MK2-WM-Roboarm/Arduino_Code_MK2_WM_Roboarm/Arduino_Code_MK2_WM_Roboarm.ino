@@ -110,6 +110,12 @@ unsigned long motddelay = minmotddelay;
 unsigned long motadelayramp = motadelay;
 unsigned long motbdelayramp = motbdelay;
 
+unsigned long astepdifferencehalf = 0;
+unsigned long bstepdifferencehalf = 0;
+
+long adecrementcount = 0;
+long bdecrementcount = 0;
+
 int waypointselect = 0;
 
 int servoatargetcount = map(110, 0, 180, ASERVOMIN, ASERVOMAX);
@@ -264,6 +270,7 @@ void loop() {
     bstepcount = bdegreesstep(0);
     cstepcount = cdegreesstep(0);
     dstepcount = ddegreesstep(0); 
+    au16data[6] = 0;
   }
 }
 
@@ -288,6 +295,8 @@ void movemotors() {
         astepswitch = 1;
         astepswitchtimer = micros();
         motadelayramp = maxmotadelay;
+        astepdifferencehalf = astepdifference / 2;
+        adecrementcount = 0;
       }
       break;
     case 1:
@@ -314,8 +323,12 @@ void movemotors() {
         }
         else {
           astepswitch = 1;
-          if(motadelayramp > motadelay) {
+          if(motadelayramp > motadelay && astepdifference > astepdifferencehalf) {
             motadelayramp -= motadelaydecrement;
+            adecrementcount++;
+          }
+          else if(motadelayramp < maxmotadelay && astepdifference < adecrementcount) {
+            motadelayramp += motadelaydecrement;
           }
         }
       }
@@ -329,6 +342,8 @@ void movemotors() {
         bstepswitch = 1;
         bstepswitchtimer = micros();  
         motbdelayramp = maxmotbdelay;
+        bstepdifferencehalf = bstepdifference / 2;
+        bdecrementcount = 0;
       }
       break;
     case 1:
@@ -354,8 +369,12 @@ void movemotors() {
         }
         else {
           bstepswitch = 1;
-          if(motbdelayramp > motbdelay) {
+          if(motbdelayramp > motbdelay && bstepdifference > bstepdifferencehalf) {
             motbdelayramp -= motbdelaydecrement;
+            bdecrementcount++;
+          }
+          else if(motbdelayramp < maxmotbdelay && bstepdifference < bdecrementcount) {
+            motbdelayramp += motbdelaydecrement;
           }
         }
       }
