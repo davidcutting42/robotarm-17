@@ -124,7 +124,7 @@ int servobtargetcount = map(180, 0, 180, BSERVOMIN, BSERVOMAX);
 int servoacurrcount = 0;
 int servobcurrcount = 0;
 
-const unsigned long minservoadelay = 1000;
+const unsigned long minservoadelay = 2000;
 const unsigned long minservobdelay = 1000;
 
 unsigned long servoadelay = minservoadelay;
