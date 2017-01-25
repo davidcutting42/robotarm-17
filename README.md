@@ -1,4 +1,4 @@
-# WM-Roboarm
+﻿# WM-Roboarm
 This repository is the main repository for David Cutting's Ward Melville Science Olympiad Robot Arm. All code is written by David Cutting unless otherwise noted. 
 
 (C) 2016-2017 David Cutting
@@ -68,3 +68,5 @@ Make sure you do not insert “sudo” in front of the startx command. Doing so 
 For the pi I used the IP address 192.168.5.1 and on the laptop I used 192.168.5.2. I used a subnet mask of 255.255.255.0.
 
 To calibrate the potentiometers, you need to have a way of knowing where the arm is. I took pictures and noted the readout as explained in my blog post here: http://davidjcutting.com/2016/11/29/potentiometer-woes/ but a protractor custom made to mount on the arm would have been a better solution had I had more time. This will probably be added later, or the potentiometers changed out for an absolute position digital encoder.
+
+Required arduino libraries: Wire, Adafruit_PWMServoDriver, ModbusRtu (https://github.com/smarmengol/Modbus-Master-Slave-for-Arduino), SoftwareSerial, ams_as5048b 

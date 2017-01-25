@@ -12,30 +12,47 @@
  *  9               motdangle           Master          Motor d target position (degrees)
  */
 
-#include "MyTypes.h"
+#include "MyTypes.h" // File that defines waypoint constructor
 
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-#include <ModbusRtu.h>
-#include <SoftwareSerial.h>
+#include <Wire.h> // Library that contains framework for communication with PCA9685 (servo controller) and AS5048Bs (encoders)
+#include <Adafruit_PWMServoDriver.h> // Library that manages PCA9685 outputs
+#include <ModbusRtu.h> // Library that communitates with raspberry pi master instrument over modbus
+#include <SoftwareSerial.h> // Library for modbus communication
+#include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
-#define stpmode 8 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
-#define dmotstpmode 1
+#define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
+#define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
+// Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
 #define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
-
 #define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
 #define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo controller object
 
-int mode = 0; // 0 = no state, 1  
+// Define constants for the encoders
+#define U_RAW 1
+#define U_TRN 2
+#define U_DEG 3
+#define U_RAD 4
+#define U_GRAD 5
+#define U_MOA 6
+#define U_SOA 7
+#define U_MILNATO 8
+#define U_MILSE 9
+#define U_MILRU 10
 
-// Modbus object declaration
-Modbus slave(1,0,0); // this is slave @1 and RS-232 or USB-FTDI
+// Construct encoder objects
+AMS_AS5048B encodera(0x01);
+AMS_AS5048B encoderb(0x02);
+AMS_AS5048B encoderd(0x03);
 
-// Set pin numbers for steppers A, B, and C
+int mode = 0; // Mode variable - controls whether motors are moving, transmitted to raspberry pi as a check to make sure motors have reached target before continuting to next waypoint
+
+Modbus slave(1,0,0); // Modbus object declaration - this is slave @1 and RS-232 or USB-FTDI
+
+// Set pin numbers for steppers A, B, C, and D
 const int astep = 4;
 const int adir = 26;
 const int bstep = 5;
@@ -45,7 +62,7 @@ const int cdir = 28;
 const int dstep = A4;
 const int ddir = A3;
 
-// Set pin numbers for stepping mode selection
+// Set pin numbers for A, B, and C (not D) step mode selection
 const int stpmode0 = 32;
 const int stpmode1 = 33;
 const int stpmode2 = 34;
@@ -54,94 +71,117 @@ const int stpmode2 = 34;
 float h = 249.2;
 float u = 249.2;
 
-// Data array for Modbus network sharing
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0 };
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0 }; // Data array for Modbus network sharing
 
-// Array for storing calculated angles
-float angles[2];
+float angles[2]; // Array for storing calculated angles in inverse kinematics section
 
-long astepcount = adegreesstep(90);
-long bstepcount = bdegreesstep(0);
-long cstepcount = cdegreesstep(0);
-long dstepcount = ddegreesstep(0);
-
+// Number of steps each motor needs to take before it reaches its target, decremented in each step
 long astepdifference = 0;
 long bstepdifference = 0;
 long cstepdifference = 0;
 long dstepdifference = 0;
 
+// Direction of stepper motors, used to calculate the current absolute position of the motor.
 int astepdirection = 0;
 int bstepdirection = 0;
 int cstepdirection = 0;
 int dstepdirection = 0;
 
+// Switch case variables that control whether steppers are idle or stepping.
 int astepswitch = 0;
 int bstepswitch = 0;
 int cstepswitch = 0;
 int dstepswitch = 0;
 
+// Timer (microseconds) that controls the pulselength of the stepper motors in the switch cases.
 unsigned long astepswitchtimer = 0;
 unsigned long bstepswitchtimer = 0;
 unsigned long cstepswitchtimer = 0;
 unsigned long dstepswitchtimer = 0;
 
-// Set ratio for number of steps to number of degrees
+// Ratio for number of steps of motor to number of degrees of joint based on gearing and pulley ratios
 const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
 const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
 const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 const float dratio = 200.0 * dmotstpmode / 360.0;
 
+long adegreesstep(float deg);
+long bdegreesstep(float deg);
+long cdegreesstep(float deg);
+long ddegreesstep(float deg); 
+
+// Set all motors to their calibration position (zero)
+long astepcount = adegreesstep(90);
+long bstepcount = bdegreesstep(0);
+long cstepcount = cdegreesstep(0);
+long dstepcount = ddegreesstep(0);
+
+// Minimum motor delay (time between steps)
 const unsigned long minmotadelay = 5000 / aratio * 2.5;
 const unsigned long minmotbdelay = 5000 / bratio * 2.5;
 const unsigned long minmotcdelay = 10000 / cratio * 2;
 const unsigned long minmotddelay = 10000 / dratio;
 
+// Maximum motor delay (time between steps). Set only for a and b because they have acceleration and deceleration
 const unsigned long maxmotadelay = minmotadelay * 5;
 const unsigned long maxmotbdelay = minmotbdelay * 5;
 
+// Acceleration and deceleration increments for adjusting the delay after every step. 
 const long motadelaydecrement = 25;
 const long motbdelaydecrement = motadelaydecrement * bratio / aratio;
 
+// Sets taget delay (essentially fastest speed) for a given move. Currently has only a fast and a slow mode based on the actiontypexy variable
 unsigned long motadelay = minmotadelay;
 unsigned long motbdelay = minmotbdelay;
 unsigned long motcdelay = minmotcdelay;
 unsigned long motddelay = minmotddelay;
 
+// Current delay, the one actually used to time steps.
 unsigned long motadelayramp = motadelay;
 unsigned long motbdelayramp = motbdelay;
 
+// Variable used in acceleration and deceleration to calculate when to begin decelerating if the interval is shorter than the an acceleration plus deceleration curve.
 unsigned long astepdifferencehalf = 0;
 unsigned long bstepdifferencehalf = 0;
 
+// Counts number of decrements of the delay during acceleration so that an equal number will be used in deceleration.
 long adecrementcount = 0;
 long bdecrementcount = 0;
 
-int waypointselect = 0;
-
+// Initializes target position of servos to zero positions
 int servoatargetcount = map(110, 0, 180, ASERVOMIN, ASERVOMAX);
 int servobtargetcount = map(180, 0, 180, BSERVOMIN, BSERVOMAX);
 
+// Current position of motor, incremented towards the target to give speed control of servos.
 int servoacurrcount = 0;
 int servobcurrcount = 0;
 
+// Sets maximum speed of servo position change (speed control)
 const unsigned long minservoadelay = 2000;
 const unsigned long minservobdelay = 1000;
 
+// Sets speed of servo position change (speed control)
 unsigned long servoadelay = minservoadelay;
 unsigned long servobdelay = minservobdelay;
 
-long servoatimer = 0;
-long servobtimer = 0;
+// Timer used in servo switch cases 
+unsigned long servoatimer = 0;
+unsigned long servobtimer = 0;
 
+// Selection variable used in servo switch cases
 int servoaswitch = 0;
 int servobswitch = 0;
 
+// Assists mode register in determining the current state of the machine and whether it is ready to move to next position.
 int getstream = 0;
 
-//long stepdifferenceall = 0;
+// Encoder readings (degrees) for A, B, and D joints
+float jointacurrent = 0;
+float jointbcurrent = 0;
+float jointdcurrent = 0;
 
 void setup() {
-  // Set each control pin to an output
+  // Set up each stepper motor control pin to an output
   pinMode(astep, OUTPUT);
   pinMode(adir, OUTPUT);
   pinMode(bstep, OUTPUT);
@@ -150,16 +190,17 @@ void setup() {
   pinMode(cdir, OUTPUT);
   pinMode(dstep, OUTPUT);
   pinMode(ddir, OUTPUT);
-  
+
+  // Set up each step mode control pin as an output 
   pinMode(stpmode0, OUTPUT);
   pinMode(stpmode1, OUTPUT);
   pinMode(stpmode2, OUTPUT);
 
+  // Initialize stepper direction and step pins 
   digitalWrite(astep, LOW);
   digitalWrite(bstep, LOW);
   digitalWrite(cstep, LOW);
   digitalWrite(dstep, LOW);
-  
   digitalWrite(adir, LOW);
   digitalWrite(bdir, LOW);
   digitalWrite(cdir, LOW);
@@ -167,52 +208,62 @@ void setup() {
 
   // Set stepping mode based on the value of stpmode 
   
-  // 1/2 microstep mode
-  if(stpmode == 2) {
+  if(stpmode == 2) // 1/2 microstep mode
+  {
     digitalWrite(stpmode0, HIGH);
     digitalWrite(stpmode1, LOW);
     digitalWrite(stpmode2, LOW);
   }
-  // 1/4 microstep mode
-  else if(stpmode == 4) {
+  
+  else if(stpmode == 4) // 1/4 microstep mode
+  { 
     digitalWrite(stpmode0, LOW);
     digitalWrite(stpmode1, HIGH);
     digitalWrite(stpmode2, LOW);
   }
-  // 1/8 microstep mode
-  else if(stpmode == 8) {
+  
+  else if(stpmode == 8) // 1/8 microstep mode
+  { 
     digitalWrite(stpmode0, HIGH);
     digitalWrite(stpmode1, HIGH);
     digitalWrite(stpmode2, LOW);
   }
-  // 1/16 microstep mode
-  else if(stpmode == 16) {
+  
+  else if(stpmode == 16) // 1/16 microstep mode
+  {
     digitalWrite(stpmode0, LOW);
     digitalWrite(stpmode1, LOW);
     digitalWrite(stpmode2, HIGH);
   }
-  // 1/32 microstep mode
-  else if(stpmode == 32) {
+  
+  else if(stpmode == 32) // 1/32 microstep mode
+  {
     digitalWrite(stpmode0, HIGH);
     digitalWrite(stpmode1, LOW);
     digitalWrite(stpmode2, HIGH);
   }
-  // Full step mode
-  else {
+  
+  else // Full step mode
+  {
     digitalWrite(stpmode0, LOW);
     digitalWrite(stpmode1, LOW);
     digitalWrite(stpmode2, LOW);
   }
 
-  slave.begin( 57600 );
+  slave.begin( 57600 ); // Start modbus communications
   
-  pwm.begin();
+  pwm.begin(); // Start servo driver chip
   
-  pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
-  
-  pwm.setPWM(1, 0, map(120, 0, 180, ASERVOMIN, ASERVOMAX));
-  pwm.setPWM(0, 0, map(180, 0, 180, BSERVOMIN, BSERVOMAX));
-  delay(100);
+  pwm.setPWMFreq(60); // Set frequency to ~60 Hz
+
+  // Initialize servos to starting position
+  pwm.setPWM(1, 0, servoatargetcount);
+  pwm.setPWM(0, 0, servobtargetcount);
+
+  // Start encoder communication
+  encodera.begin();
+  encoderb.begin();
+  encoderd.begin();
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -220,25 +271,8 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  //stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
- 
-  slave.poll( au16data, 12 );
-  
-  /*
-  if(au16data[6] == 1) {
-    if (steppersdone() && servosdone()) {
-      if(waypointselect >= 13) {
-        au16data[6] = 0;
-      }
-      else {
-        inversekinematics(wp[waypointselect]);
-        waypointselect++; 
-        delay(500);
-      }
-    }
-    movemotors();
-  }
-  */
+  slave.poll( au16data, 12 ); // Read registers from master (Raspberry Pi) device
+  readencoders();
   
   if(au16data[6] == 2) {
     if(getstream == 0) { 
@@ -274,15 +308,34 @@ void loop() {
   }
 }
 
-bool steppersdone()
-{
+/////////////////////////////////////////////////////////////////////////////////
+////////////////////// STEPPER COMPLETION CHECK /////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+bool steppersdone() {
   long stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
   return (stepdifferenceall == 0);
 }
 
-bool servosdone()
-{
+/////////////////////////////////////////////////////////////////////////////////
+//////////////////////// SERVO COMPLETION CHECK /////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+bool servosdone() {
   return (servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount); 
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// READ ENCODERS ////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+void readencoders() {
+  jointacurrent = encodera.angleR(U_DEG);
+  jointbcurrent = encoderb.angleR(U_DEG);
+  jointdcurrent = encoderd.angleR(U_DEG);
+  astepcount = adegreesstep(jointacurrent);
+  bstepcount = bdegreesstep(jointbcurrent);
+  dstepcount = ddegreesstep(jointdcurrent);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
