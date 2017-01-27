@@ -264,6 +264,11 @@ void setup() {
   encodera.begin();
   encoderb.begin();
   encoderd.begin();
+
+  // Set all encoders to zero
+  encodera.setZeroReg();
+  encoderb.setZeroReg();
+  encoderd.setZeroReg();
 }
 
 /////////////////////////////////////////////////////////////////////////////////
