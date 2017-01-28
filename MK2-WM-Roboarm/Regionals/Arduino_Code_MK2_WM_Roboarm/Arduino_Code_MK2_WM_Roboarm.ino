@@ -338,9 +338,9 @@ void readencoders() {
   jointacurrent = encodera.angleR(U_DEG);
   jointbcurrent = encoderb.angleR(U_DEG);
   jointdcurrent = encoderd.angleR(U_DEG);
-  astepcount = adegreesstep(jointacurrent);
-  bstepcount = bdegreesstep(jointbcurrent);
-  dstepcount = ddegreesstep(jointdcurrent);
+  //astepcount = adegreesstep(jointacurrent);
+  //bstepcount = bdegreesstep(jointbcurrent);
+  //dstepcount = ddegreesstep(jointdcurrent);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
