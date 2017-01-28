@@ -307,9 +307,9 @@ runnextbut.grid(row=7, column=1)
     
 def checksequence():
     global stopping
-    encoderadeg = arduino.read_register(12)
-    encoderbdeg = arduino.read_register(13)
-    encodercdeg = arduino.read_register(14)
+    encoderadeg = arduino.read_register(12)/100
+    encoderbdeg = arduino.read_register(13)/100
+    encodercdeg = arduino.read_register(14)/100
     print("Encoder A: {}, B: {}, C: {}".format(encoderadeg, encoderbdeg, encodercdeg))
     if(stopping == 0):
         modelocal = arduino.read_register(6)

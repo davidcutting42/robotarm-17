@@ -346,9 +346,9 @@ void readencoders() {
   //astepcount = adegreesstep(jointacurrent);
   //bstepcount = bdegreesstep(jointbcurrent);
   //dstepcount = ddegreesstep(jointdcurrent);
-  au16data[12] = jointacurrent;
-  au16data[13] = jointbcurrent;
-  au16data[14] = jointdcurrent;
+  au16data[12] = jointacurrent*100;
+  au16data[13] = jointbcurrent*100;
+  au16data[14] = jointdcurrent*100;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
