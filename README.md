@@ -30,5 +30,6 @@ git clone https://github.com/davecutting/WM-Roboarm.git
 sudo pip install minimalmodbus
 ```
 Download the Modbus-Master-Slave library and unzip it to pi/sketchbook/libraries
+Required arduino libraries: Wire, Adafruit_PWMServoDriver, ModbusRtu (https://github.com/smarmengol/Modbus-Master-Slave-for-Arduino), SoftwareSerial, ams_as5048b
 
 Enable the VNC option in the preferences tab on the arduino, and make sure to set your arduino to automatically connect to your wifi hotspot on your phone at the tournament. That's it! 
