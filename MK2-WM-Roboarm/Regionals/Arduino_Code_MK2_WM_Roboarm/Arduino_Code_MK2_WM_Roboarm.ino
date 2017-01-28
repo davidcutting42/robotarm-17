@@ -76,7 +76,7 @@ const int stpmode2 = 34;
 float h = 249.2;
 float u = 249.2;
 
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0 }; // Data array for Modbus network sharing
+uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0, 0, 0, 0 }; // Data array for Modbus network sharing
 
 float angles[2]; // Array for storing calculated angles in inverse kinematics section
 
