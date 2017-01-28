@@ -12,6 +12,9 @@
 #   9               motdangle           Master          Motor d target position (degrees)
 #   10              xymode              Master          Mode of X any X axes... 1=Fast, 0=Slow
 #   11              liftmode            Master          Mode of Lift motor... 1=Fast, 0=Slow
+#   12              encoderadeg         Slave           Current angle outputted by encoder A
+#   13              encoderbdeg         Slave           Current angle outputted by encoder B
+#   14              encoderddeg         Slave           Current angle outputted by encoder D
 
 from Tkinter import *
 import time
@@ -304,6 +307,10 @@ runnextbut.grid(row=7, column=1)
     
 def checksequence():
     global stopping
+    encoderadeg = arduino.read_register(12)
+    encoderbdeg = arduino.read_register(13)
+    encodercdeg = arduino.read_register(14)
+    print("Encoder A: {}, B: {}, C: {}".format(encoderadeg, encoderbdeg, encodercdeg))
     if(stopping == 0):
         modelocal = arduino.read_register(6)
         if(modelocal == 0):

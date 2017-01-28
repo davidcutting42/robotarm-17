@@ -10,6 +10,11 @@
  *  7               servapos            Master          Target position (degrees) of servo A
  *  8               servbpos            Master          Target position (degrees) of servo B
  *  9               motdangle           Master          Motor d target position (degrees)
+ *  10              xymode              Master          Mode of X any X axes... 1=Fast, 0=Slow
+ *  11              liftmode            Master          Mode of Lift motor... 1=Fast, 0=Slow
+ *  12              encoderadeg         Slave           Current angle outputted by encoder A
+ *  13              encoderbdeg         Slave           Current angle outputted by encoder B
+ *  14              encoderddeg         Slave           Current angle outputted by encoder D
  */
 
 #include "MyTypes.h" // File that defines waypoint constructor
@@ -341,6 +346,9 @@ void readencoders() {
   //astepcount = adegreesstep(jointacurrent);
   //bstepcount = bdegreesstep(jointbcurrent);
   //dstepcount = ddegreesstep(jointdcurrent);
+  au16data[12] = jointacurrent;
+  au16data[13] = jointbcurrent;
+  au16data[14] = jointdcurrent;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
