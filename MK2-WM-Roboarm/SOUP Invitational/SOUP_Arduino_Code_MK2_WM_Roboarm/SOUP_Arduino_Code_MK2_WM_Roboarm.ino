@@ -281,7 +281,7 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  slave.poll( au16data, 12 ); // Read registers from master (Raspberry Pi) device
+  slave.poll( au16data, 15 ); // Read registers from master (Raspberry Pi) device
   readencoders();
   
   if(au16data[6] == 2) {
@@ -346,9 +346,9 @@ void readencoders() {
   //astepcount = adegreesstep(jointacurrent);
   //bstepcount = bdegreesstep(jointbcurrent);
   //dstepcount = ddegreesstep(jointdcurrent);
-  au16data[12] = jointacurrent*100;
-  au16data[13] = jointbcurrent*100;
-  au16data[14] = jointdcurrent*100;
+  au16data[12] = 1;
+  au16data[13] = 2;
+  au16data[14] = 3;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
