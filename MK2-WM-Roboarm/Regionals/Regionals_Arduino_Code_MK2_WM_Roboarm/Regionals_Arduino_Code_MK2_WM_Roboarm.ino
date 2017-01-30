@@ -639,9 +639,9 @@ void inversekinematics(waypoint target) {
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
 
-  motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
-  motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
-  motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 3;
+  motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 2;
+  motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 2;
+  motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 2;
   motddelay = minmotddelay;
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
   servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
