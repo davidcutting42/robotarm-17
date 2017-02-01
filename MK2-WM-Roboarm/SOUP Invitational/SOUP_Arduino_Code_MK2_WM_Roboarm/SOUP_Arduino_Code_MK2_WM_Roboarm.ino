@@ -18,11 +18,9 @@
  */
 
 #include "MyTypes.h" // File that defines waypoint constructor
-
+#include <SimpleModbusSlave.h>
 #include <Wire.h> // Library that contains framework for communication with PCA9685 (servo controller) and AS5048Bs (encoders)
 #include <Adafruit_PWMServoDriver.h> // Library that manages PCA9685 outputs
-#include <ModbusRtu.h> // Library that communitates with raspberry pi master instrument over modbus
-#include <SoftwareSerial.h> // Library for modbus communication
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 #define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
@@ -55,8 +53,6 @@ AMS_AS5048B encoderd(0x03);
 
 int mode = 0; // Mode variable - controls whether motors are moving, transmitted to raspberry pi as a check to make sure motors have reached target before continuting to next waypoint
 
-Modbus slave(1,0,0); // Modbus object declaration - this is slave @1 and RS-232 or USB-FTDI
-
 // Set pin numbers for steppers A, B, C, and D
 const int astep = 4;
 const int adir = 26;
@@ -75,6 +71,28 @@ const int stpmode2 = 34;
 // Set lengths of humerus and ulna (arm links)
 float h = 249.2;
 float u = 249.2;
+
+//////////////// registers of your slave ///////////////////
+enum 
+{     
+  ytarget,             
+  bendpreference,      
+  basetarget,          
+  steppersinposition,  
+  benddirection,       
+  mode,                
+  servapos,            
+  servbpos,            
+  motdangle,           
+  xymode,              
+  liftmode,
+  encoderadeg,
+  encoderbdeg,
+  encoderddeg,
+  TOTAL_REGS_SIZE 
+};
+
+unsigned int holdingRegs[TOTAL_REGS_SIZE];
 
 uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0, 0, 0, 0 }; // Data array for Modbus network sharing
 
@@ -255,7 +273,7 @@ void setup() {
     digitalWrite(stpmode2, LOW);
   }
 
-  slave.begin( 57600 ); // Start modbus communications
+  modbus_configure(115200, 1, 2, TOTAL_REGS_SIZE, 0);
   
   pwm.begin(); // Start servo driver chip
   
