@@ -24,7 +24,7 @@
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 #define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
-#define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
+#define dmotstpmode 8 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
@@ -72,23 +72,23 @@ const int stpmode2 = 34;
 float h = 249.2;
 float u = 249.2;
 
-//////////////// registers of your slave ///////////////////
+// Registers for the slave, make sure to include TOTAL_REGS_SIZE variable as last one to finish count.
 enum 
 {     
-  ytarget,             
-  bendpreference,      
-  basetarget,          
-  steppersinposition,  
-  benddirection,       
-  mode,                
-  servapos,            
-  servbpos,            
-  motdangle,           
-  xymode,              
-  liftmode,
-  encoderadeg,
-  encoderbdeg,
-  encoderddeg,
+  mb_ytarget,             
+  mb_bendpreference,      
+  mb_basetarget,          
+  mb_steppersinposition,  
+  mb_benddirection,       
+  mb_mode,                
+  mb_servapos,            
+  mb_servbpos,            
+  mb_motdangle,           
+  mb_xymode,              
+  mb_liftmode,
+  mb_encoderadeg,
+  mb_encoderbdeg,
+  mb_encoderddeg,
   TOTAL_REGS_SIZE 
 };
 
@@ -299,7 +299,7 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  slave.poll( au16data, 15 ); // Read registers from master (Raspberry Pi) device
+  modbus_update(holdingRegs);
   readencoders();
   
   if(au16data[6] == 2) {
@@ -361,12 +361,13 @@ void readencoders() {
   jointacurrent = encodera.angleR(U_DEG);
   jointbcurrent = encoderb.angleR(U_DEG);
   jointdcurrent = encoderd.angleR(U_DEG);
+  //TODO: uncomment these three lines and comment the three after, then modify the step counting code to rely on encoders for step count.
   //astepcount = adegreesstep(jointacurrent);
   //bstepcount = bdegreesstep(jointbcurrent);
   //dstepcount = ddegreesstep(jointdcurrent);
-  au16data[12] = 1;
-  au16data[13] = 2;
-  au16data[14] = 3;
+  holdingRegs[mb_encoderadeg] = jointacurrent;
+  holdingRegs[mb_encoderadeg] = jointbcurrent;
+  holdingRegs[mb_encoderddeg] = jointdcurrent;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
