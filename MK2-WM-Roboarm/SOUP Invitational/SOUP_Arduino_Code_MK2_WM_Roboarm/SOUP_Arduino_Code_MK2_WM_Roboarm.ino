@@ -365,15 +365,15 @@ bool servosdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void readencoders() {
-  jointacurrent = encodera.angleR(U_DEG)*100;
-  jointbcurrent = encoderb.angleR(U_DEG)*100;
-  jointdcurrent = encoderd.angleR(U_DEG)*100;
+  jointacurrent = encodera.angleR(U_DEG);
+  jointbcurrent = encoderb.angleR(U_DEG);
+  jointdcurrent = encoderd.angleR(U_DEG);
   astepcount = adegreesstep(jointacurrent);
   bstepcount = bdegreesstep(jointbcurrent);
   dstepcount = ddegreesstep(jointdcurrent);
-  holdingRegs[mb_encoderadeg] = jointacurrent;
-  holdingRegs[mb_encoderbdeg] = jointbcurrent;
-  holdingRegs[mb_encoderddeg] = jointdcurrent;
+  holdingRegs[mb_encoderadeg] = jointacurrent*100;
+  holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
+  holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   
   if(stepperAtarget < astepcount) {
     digitalWrite(adir, LOW);
