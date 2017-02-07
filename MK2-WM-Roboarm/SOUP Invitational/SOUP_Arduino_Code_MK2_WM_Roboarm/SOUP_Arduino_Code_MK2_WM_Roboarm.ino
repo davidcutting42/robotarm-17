@@ -275,7 +275,7 @@ void setup() {
     digitalWrite(stpmode2, LOW);
   }
 
-  modbus_configure(115200, 1, 2, TOTAL_REGS_SIZE, 0);
+  modbus_configure(57600, 1, 2, TOTAL_REGS_SIZE, 0);
   
   pwm.begin(); // Start servo driver chip
   
@@ -365,9 +365,9 @@ bool servosdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void readencoders() {
-  jointacurrent = encodera.angleR(U_DEG);
-  jointbcurrent = encoderb.angleR(U_DEG);
-  jointdcurrent = encoderd.angleR(U_DEG);
+  jointacurrent = encodera.angleR(U_DEG)*100;
+  jointbcurrent = encoderb.angleR(U_DEG)*100;
+  jointdcurrent = encoderd.angleR(U_DEG)*100;
   astepcount = adegreesstep(jointacurrent);
   bstepcount = bdegreesstep(jointbcurrent);
   dstepcount = ddegreesstep(jointdcurrent);

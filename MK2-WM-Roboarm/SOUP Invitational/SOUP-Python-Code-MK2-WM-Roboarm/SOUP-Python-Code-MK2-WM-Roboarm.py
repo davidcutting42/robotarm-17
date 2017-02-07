@@ -33,7 +33,7 @@ except:
         except:
             arduino = minimalmodbus.Instrument('/dev/ttyACM3', 1) # port name, slave address (in decimal)
 
-arduino.serial.baudrate = 115200
+arduino.serial.baudrate = 57600
 
 #Create Tkinter Window
 root = Tk()
