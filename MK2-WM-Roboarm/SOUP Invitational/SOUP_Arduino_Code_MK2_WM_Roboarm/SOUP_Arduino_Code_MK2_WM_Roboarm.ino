@@ -36,15 +36,13 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 
 // Define constants for the encoders
 #define U_RAW 1
-#define U_TRN 2
 #define U_DEG 3
 #define U_RAD 4
-#define U_GRAD 5
-#define U_MOA 6
-#define U_SOA 7
-#define U_MILNATO 8
-#define U_MILSE 9
-#define U_MILRU 10
+
+// Encoder Zero Positions, attained from zeroing code.
+const uint16_t azero = 0;
+const uint16_t bzero = 0;
+const uint16_t dzero = 0;
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x01);
@@ -74,7 +72,8 @@ float u = 249.2;
 
 // Registers for the slave, make sure to include TOTAL_REGS_SIZE variable as last one to finish count.
 enum 
-{     
+{    
+  mb_xtarget,  
   mb_ytarget,             
   mb_bendpreference,      
   mb_basetarget,          
@@ -93,8 +92,6 @@ enum
 };
 
 unsigned int holdingRegs[TOTAL_REGS_SIZE];
-
-uint16_t au16data[] = { 0, 0, 0, 0, 0, 0, 0, 110, 180, 0, 0, 0, 0, 0, 0 }; // Data array for Modbus network sharing
 
 float angles[2]; // Array for storing calculated angles in inverse kinematics section
 
@@ -203,6 +200,11 @@ float jointacurrent = 0;
 float jointbcurrent = 0;
 float jointdcurrent = 0;
 
+// Target position for joints A, B, and D
+long stepperAtarget;
+long stepperBtarget;
+long stepperDtarget;
+
 void setup() {
   // Set up each stepper motor control pin to an output
   pinMode(astep, OUTPUT);
@@ -288,10 +290,15 @@ void setup() {
   encoderb.begin();
   encoderd.begin();
 
-  // Set all encoders to zero
-  encodera.setZeroReg();
-  encoderb.setZeroReg();
-  encoderd.setZeroReg();
+  // Set encoders to ccw or clockwise (false = ccw, true = cw)
+  encodera.setClockWise(false);
+  encoderb.setClockWise(false);
+  encoderd.setClockWise(false);
+
+  cstepcount = cdegreesstep(0);
+  encodera.zeroRegW(azero);
+  encoderb.zeroRegW(bzero);
+  encoderd.zeroRegW(dzero); 
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -302,18 +309,18 @@ void loop() {
   modbus_update(holdingRegs);
   readencoders();
   
-  if(au16data[6] == 2) {
+  if(mb_mode == 2) {
     if(getstream == 0) { 
       waypoint target;
-      target.x = au16data[0];
-      target.y = au16data[1];
-      target.lhrh = au16data[2];
-      target.base = au16data[3];
-      target.dangle = au16data[9];
-      target.saangle = au16data[7];
-      target.sbangle = au16data[8];
-      target.actiontypexy = au16data[10];
-      target.actiontypelift = au16data[11];
+      target.x = holdingRegs[mb_xtarget];
+      target.y = holdingRegs[mb_ytarget];
+      target.lhrh = holdingRegs[mb_benddirection];
+      target.base = holdingRegs[mb_basetarget];
+      target.dangle = holdingRegs[mb_motdangle];
+      target.saangle = holdingRegs[mb_servapos];
+      target.sbangle = holdingRegs[mb_servbpos];
+      target.actiontypexy = holdingRegs[mb_xymode];
+      target.actiontypelift = holdingRegs[mb_liftmode];
       target.actiontypeservos = 1;
       target.x -= 1000;
       target.y -= 1000;
@@ -323,16 +330,16 @@ void loop() {
     }
     movemotors();
     if(steppersdone() && servosdone()) {
-      au16data[6] = 0;
+      holdingRegs[mb_mode] = 0;
       getstream = 0;
     }
   }
-  else if(au16data[6] == 3) {
-    astepcount = adegreesstep(90);
-    bstepcount = bdegreesstep(0);
+  else if(holdingRegs[mb_mode] == 3) {
     cstepcount = cdegreesstep(0);
-    dstepcount = ddegreesstep(0); 
-    au16data[6] = 0;
+    encodera.zeroRegW(azero);
+    encoderb.zeroRegW(bzero);
+    encoderd.zeroRegW(dzero); 
+    holdingRegs[mb_mode] = 0;
   }
 }
 
@@ -361,13 +368,61 @@ void readencoders() {
   jointacurrent = encodera.angleR(U_DEG);
   jointbcurrent = encoderb.angleR(U_DEG);
   jointdcurrent = encoderd.angleR(U_DEG);
-  //TODO: uncomment these three lines and comment the three after, then modify the step counting code to rely on encoders for step count.
-  //astepcount = adegreesstep(jointacurrent);
-  //bstepcount = bdegreesstep(jointbcurrent);
-  //dstepcount = ddegreesstep(jointdcurrent);
+  astepcount = adegreesstep(jointacurrent);
+  bstepcount = bdegreesstep(jointbcurrent);
+  dstepcount = ddegreesstep(jointdcurrent);
   holdingRegs[mb_encoderadeg] = jointacurrent;
-  holdingRegs[mb_encoderadeg] = jointbcurrent;
+  holdingRegs[mb_encoderbdeg] = jointbcurrent;
   holdingRegs[mb_encoderddeg] = jointdcurrent;
+  
+  if(stepperAtarget < astepcount) {
+    digitalWrite(adir, LOW);
+    astepdirection = 1;
+    astepdifference = astepcount - stepperAtarget; 
+  }
+  else if(stepperAtarget > astepcount) {
+    digitalWrite(adir, HIGH);
+    astepdirection = 0;
+    astepdifference = stepperAtarget - astepcount;
+  }
+  
+  if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
+    digitalWrite(bdir, LOW);
+    bstepdirection = 0;
+    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - bstepcount + stepperBtarget));
+  }
+  else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
+    digitalWrite(bdir, HIGH);
+    bstepdirection = 1;
+    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - stepperBtarget + bstepcount));
+  }
+  else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
+    digitalWrite(bdir, LOW);
+    bstepdirection = 0;
+    bstepdifference = bdegreesstep(bstepdegrees(stepperBtarget - bstepcount));
+  }
+  else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
+    digitalWrite(bdir, HIGH);
+    bstepdirection = 1;
+    bstepdifference = bdegreesstep(bstepdegrees(bstepcount - stepperBtarget));
+  }
+  else {
+    bstepdifference = 0;  
+  }
+
+  if(stepperDtarget < dstepcount) {
+    digitalWrite(ddir, HIGH);
+    dstepdirection = 0;
+    dstepdifference = dstepcount - stepperDtarget; 
+  }
+  else if(stepperDtarget > dstepcount) {
+    digitalWrite(ddir, LOW);
+    dstepdirection = 1;
+    dstepdifference = stepperDtarget - dstepcount;
+  }
+  else {
+    dstepdifference = 0;  
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -402,7 +457,6 @@ void movemotors() {
         else if(astepdirection == 1) {
           astepcount--;
         }
-        astepdifference--;
         if(astepdifference == 0) {
           astepswitch = 0;
         }
@@ -448,7 +502,6 @@ void movemotors() {
         else if(bstepdirection == 1) {
           bstepcount--;
         }
-        bstepdifference--;
         if(bstepdifference == 0) {
           bstepswitch = 0;
         }
@@ -524,7 +577,6 @@ void movemotors() {
         else if(dstepdirection == 1) {
           dstepcount++;
         }
-        dstepdifference--;
         if(dstepdifference == 0) {
           dstepswitch = 0;
         }
@@ -652,47 +704,12 @@ void inversekinematics(waypoint target) {
     angles[0] = trigresults[1];
     angles[1] = trigresults[3];
   }
-  
-  long stepperAtarget = adegreesstep(angles[0]);
-  long stepperBtarget = bdegreesstep(angles[1]);
-  long stepperCtarget = cdegreesstep(target.base);
-  long stepperDtarget = ddegreesstep(target.dangle);
-  
-  if(stepperAtarget < astepcount) {
-    digitalWrite(adir, LOW);
-    astepdirection = 1;
-    astepdifference = astepcount - stepperAtarget; 
-  }
-  else if(stepperAtarget > astepcount) {
-    digitalWrite(adir, HIGH);
-    astepdirection = 0;
-    astepdifference = stepperAtarget - astepcount;
-  }
-  
-  if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
-    digitalWrite(bdir, LOW);
-    bstepdirection = 0;
-    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - bstepcount + stepperBtarget));
-  }
-  else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
-    digitalWrite(bdir, HIGH);
-    bstepdirection = 1;
-    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - stepperBtarget + bstepcount));
-  }
-  else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
-    digitalWrite(bdir, LOW);
-    bstepdirection = 0;
-    bstepdifference = bdegreesstep(bstepdegrees(stepperBtarget - bstepcount));
-  }
-  else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
-    digitalWrite(bdir, HIGH);
-    bstepdirection = 1;
-    bstepdifference = bdegreesstep(bstepdegrees(bstepcount - stepperBtarget));
-  }
-  else {
-    bstepdifference = 0;  
-  }
 
+  stepperAtarget = adegreesstep(angles[0]);
+  stepperBtarget = bdegreesstep(angles[1]);
+  stepperDtarget = ddegreesstep(target.dangle);
+  long stepperCtarget = cdegreesstep(target.base);
+  
   if(stepperCtarget < cstepcount) {
     digitalWrite(cdir, HIGH);
     cstepdirection = 0;
@@ -705,20 +722,6 @@ void inversekinematics(waypoint target) {
   }
   else {
     cstepdifference = 0;  
-  }
-  
-  if(stepperDtarget < dstepcount) {
-    digitalWrite(ddir, HIGH);
-    dstepdirection = 0;
-    dstepdifference = dstepcount - stepperDtarget; 
-  }
-  else if(stepperDtarget > dstepcount) {
-    digitalWrite(ddir, LOW);
-    dstepdirection = 1;
-    dstepdifference = stepperDtarget - dstepcount;
-  }
-  else {
-    dstepdifference = 0;  
   }
   
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);

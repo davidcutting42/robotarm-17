@@ -7,28 +7,29 @@
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 // Define constants for the encoders
+#define U_RAW 1
 #define U_DEG 3
 
 // Construct encoder objects
-//AMS_AS5048B encodera(0x01);
-//AMS_AS5048B encoderb(0x02);
-AMS_AS5048B encoderd(0x48);
+AMS_AS5048B encodera(0x44);
+AMS_AS5048B encoderb(0x48);
+AMS_AS5048B encoderd(0x4C);
 
 void setup() {
   // Start encoder communication
-  //encodera.begin();
-  //encoderb.begin();
+  encodera.begin();
+  encoderb.begin();
   encoderd.begin();
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
-  //Serial.print("Elnncoder A: ");
-  //Serial.println(encodera.angleR(U_DEG));
-  //Serial.print("Encoder B: ");
-  //Serial.println(encoderb.angleR(U_DEG));
+  Serial.print("Encoder A: ");
+  Serial.println(encodera.angleR(U_RAW));
+  Serial.print("Encoder B: ");
+  Serial.println(encoderb.angleR(U_RAW));
   Serial.print("Encoder D: ");
-  Serial.println(encoderd.angleR(U_DEG));
+  Serial.println(encoderd.angleR(U_RAW));
   delay(500);
 }
