@@ -21,12 +21,12 @@ void setup() {
   encoderb.begin();
   encoderd.begin();
 
-  Serial.begin(115200);
+  Serial.begin(9600);
 }
 
 void loop() {
   Serial.print("Encoder A: ");
-  Serial.println(encodera.angleR(U_RAW));
+  Serial.println(encodera.angleR(U_RA));
   Serial.print("Encoder B: ");
   Serial.println(encoderb.angleR(U_RAW));
   Serial.print("Encoder D: ");

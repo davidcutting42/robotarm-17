@@ -40,9 +40,9 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 #define U_RAD 4
 
 // Encoder Zero Positions, attained from zeroing code.
-const uint16_t azero = 0;
-const uint16_t bzero = 0;
-const uint16_t dzero = 0;
+const uint16_t azero = 4927;
+const uint16_t bzero = 5741;
+const uint16_t dzero = 8043;
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x01);

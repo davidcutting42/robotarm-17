@@ -33,7 +33,7 @@ except:
         except:
             arduino = minimalmodbus.Instrument('/dev/ttyACM3', 1) # port name, slave address (in decimal)
 
-arduino.serial.baudrate = 57600
+arduino.serial.baudrate = 115200
 
 #Create Tkinter Window
 root = Tk()
@@ -69,13 +69,13 @@ def updatearduinoregisters(): #Function for stepper control and spacenav input
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle+1000, xymode, liftmode]
     arduino.write_registers(0, registers)
     root.update_idletasks()
-    encoderdeg = arduino.read_register(0)
+    encoderdeg = arduino.read_registers(12)
     print encoderdeg
-    #encoderadeg = encoderdeg[0]/100
-    #encoderbdeg = encoderdeg[1]/100
-    #encoderddeg = encoderdeg[2]/100
+    encoderadeg = encoderdeg[0]/100
+    encoderbdeg = encoderdeg[1]/100
+    encoderddeg = encoderdeg[2]/100
     
-    #print("Encoder A: {}, B: {}, C: {}".format(encoderadeg, encoderbdeg, encodercdeg))
+    print("Encoder A: {}, B: {}, C: {}".format(encoderadeg, encoderbdeg, encodercdeg))
 
 
 xval = Label(root, text=xtarget)
