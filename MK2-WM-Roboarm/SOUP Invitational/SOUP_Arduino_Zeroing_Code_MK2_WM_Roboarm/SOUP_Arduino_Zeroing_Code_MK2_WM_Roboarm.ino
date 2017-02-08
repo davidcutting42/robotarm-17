@@ -26,7 +26,7 @@ void setup() {
 
 void loop() {
   Serial.print("Encoder A: ");
-  Serial.println(encodera.angleR(U_RA));
+  Serial.println(encodera.angleR(U_RAW));
   Serial.print("Encoder B: ");
   Serial.println(encoderb.angleR(U_RAW));
   Serial.print("Encoder D: ");
