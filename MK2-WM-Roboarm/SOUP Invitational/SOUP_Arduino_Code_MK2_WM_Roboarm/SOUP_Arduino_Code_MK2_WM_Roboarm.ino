@@ -1,4 +1,4 @@
-/*  Modbus Register Table (Arduino is slave)
+/*  Modbus Register Table (Arduino is slave, USB Device running python is master)
  *  Register:       Register Name:      Source:         Description:
  *  0               xtarget             Master          Target x coordinate (mm)
  *  1               ytarget             Master          Target y coordinate (mm)
@@ -37,7 +37,6 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 // Define constants for the encoders
 #define U_RAW 1
 #define U_DEG 3
-#define U_RAD 4
 
 // Encoder Zero Positions, attained from zeroing code.
 const uint16_t azero = 4927;
@@ -45,9 +44,9 @@ const uint16_t bzero = 5741;
 const uint16_t dzero = 8043;
 
 // Construct encoder objects
-AMS_AS5048B encodera(0x01);
-AMS_AS5048B encoderb(0x02);
-AMS_AS5048B encoderd(0x03);
+AMS_AS5048B encodera(0x44);
+AMS_AS5048B encoderb(0x48);
+AMS_AS5048B encoderd(0x4C);
 
 int mode = 0; // Mode variable - controls whether motors are moving, transmitted to raspberry pi as a check to make sure motors have reached target before continuting to next waypoint
 
@@ -125,6 +124,7 @@ const float bratio = 200.0 * 24 / 10 * stpmode / 360.0;
 const float cratio = 200.0 * 50.0 * stpmode / 360.0;
 const float dratio = 200.0 * dmotstpmode / 360.0;
 
+// Function prototypes for degrees to step calculations
 long adegreesstep(float deg);
 long bdegreesstep(float deg);
 long cdegreesstep(float deg);
@@ -294,7 +294,8 @@ void setup() {
   encodera.setClockWise(false);
   encoderb.setClockWise(false);
   encoderd.setClockWise(false);
-
+  
+  // Zero all stepper motors
   cstepcount = cdegreesstep(0);
   encodera.zeroRegW(azero);
   encoderb.zeroRegW(bzero);
@@ -306,9 +307,12 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  modbus_update(holdingRegs);
+  // Read all three I2C encoders
   readencoders();
-  
+
+  // Update all modbus registers
+  modbus_update(holdingRegs);
+
   if(mb_mode == 2) {
     if(getstream == 0) { 
       waypoint target;
