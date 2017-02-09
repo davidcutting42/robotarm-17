@@ -12,24 +12,24 @@
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
-AMS_AS5048B encoderb(0x48);
-AMS_AS5048B encoderd(0x4C);
+//AMS_AS5048B encoderb(0x48);
+//AMS_AS5048B encoderd(0x4C);
 
 void setup() {
   // Start encoder communication
   encodera.begin();
-  encoderb.begin();
-  encoderd.begin();
+  //encoderb.begin();
+  //encoderd.begin();
 
   Serial.begin(9600);
 }
 
 void loop() {
   Serial.print("Encoder A: ");
-  Serial.println(encodera.angleR(U_RAW));
-  Serial.print("Encoder B: ");
-  Serial.println(encoderb.angleR(U_RAW));
-  Serial.print("Encoder D: ");
-  Serial.println(encoderd.angleR(U_RAW));
+  Serial.println(encodera.angleR(U_DEG));
+  //Serial.print("Encoder B: ");
+  //Serial.println(encoderb.angleR(U_RAW));
+  //Serial.print("Encoder D: ");
+  //Serial.println(encoderd.angleR(U_RAW));
   delay(500);
 }
