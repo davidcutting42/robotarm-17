@@ -66,8 +66,8 @@ const int stpmode1 = 33;
 const int stpmode2 = 34;
 
 // Set lengths of humerus and ulna (arm links)
-float h = 249.2;
-float u = 249.2;
+const float h = 249.2;
+const float u = 249.2;
 
 // Registers for the slave, make sure to include TOTAL_REGS_SIZE variable as last one to finish count.
 enum 
@@ -101,10 +101,7 @@ long cstepdifference = 0;
 long dstepdifference = 0;
 
 // Direction of stepper motors, used to calculate the current absolute position of the motor.
-int astepdirection = 0;
-int bstepdirection = 0;
 int cstepdirection = 0;
-int dstepdirection = 0;
 
 // Switch case variables that control whether steppers are idle or stepping.
 int astepswitch = 0;
@@ -204,6 +201,11 @@ float jointdcurrent = 0;
 long stepperAtarget;
 long stepperBtarget;
 long stepperDtarget;
+
+// Deadband constants for each encodered motor
+const int dbsteppera = 5;
+const int dbstepperb = 5;
+const int dbstepperd = 5;
 
 void setup() {
   // Set up each stepper motor control pin to an output
@@ -312,10 +314,8 @@ void loop() {
 
   // Update all modbus registers
   modbus_update(holdingRegs);
-  
-  movemotors();
 
-  if(mb_mode == 2) {
+  if(holdingRegs[mb_mode] == 2) {
     if(getstream == 0) { 
       waypoint target;
       target.x = holdingRegs[mb_xtarget];
@@ -363,7 +363,7 @@ bool steppersdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 bool servosdone() {
-  return (servoacurrcount == servoatargetcount && servobcurrcount == servobtargetcount); 
+  return ((servoacurrcount == servoatargetcount) && (servobcurrcount == servobtargetcount)); 
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -380,55 +380,9 @@ void readencoders() {
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
   holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
   holdingRegs[mb_encoderddeg] = jointdcurrent*100;
-  
-  if(stepperAtarget < astepcount) {
-    digitalWrite(adir, LOW);
-    astepdirection = 1;
-    astepdifference = astepcount - stepperAtarget; 
-  }
-  else if(stepperAtarget > astepcount) {
-    digitalWrite(adir, HIGH);
-    astepdirection = 0;
-    astepdifference = stepperAtarget - astepcount;
-  }
-  
-  if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
-    digitalWrite(bdir, LOW);
-    bstepdirection = 0;
-    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - bstepcount + stepperBtarget));
-  }
-  else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
-    digitalWrite(bdir, HIGH);
-    bstepdirection = 1;
-    bstepdifference = bdegreesstep(bstepdegrees(bdegreesstep(360) - stepperBtarget + bstepcount));
-  }
-  else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
-    digitalWrite(bdir, LOW);
-    bstepdirection = 0;
-    bstepdifference = bdegreesstep(bstepdegrees(stepperBtarget - bstepcount));
-  }
-  else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
-    digitalWrite(bdir, HIGH);
-    bstepdirection = 1;
-    bstepdifference = bdegreesstep(bstepdegrees(bstepcount - stepperBtarget));
-  }
-  else {
-    bstepdifference = 0;  
-  }
-
-  if(stepperDtarget < dstepcount) {
-    digitalWrite(ddir, HIGH);
-    dstepdirection = 0;
-    dstepdifference = dstepcount - stepperDtarget; 
-  }
-  else if(stepperDtarget > dstepcount) {
-    digitalWrite(ddir, LOW);
-    dstepdirection = 1;
-    dstepdifference = stepperDtarget - dstepcount;
-  }
-  else {
-    dstepdifference = 0;  
-  }
+  astepdifference = abs(astepcount - stepperAtarget);
+  bstepdifference = abs(bstepcount - stepperBtarget);
+  dstepdifference = abs(dstepcount - stepperDtarget);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -437,12 +391,13 @@ void readencoders() {
 void movemotors() {
   switch (astepswitch) {
     case 0:
-      if ((astepdifference != 0) && (cstepdifference == 0)) {
+      if ((astepdifference > dbsteppera) && (cstepdifference == 0)) {
         astepswitch = 1;
         astepswitchtimer = micros();
         motadelayramp = maxmotadelay;
         astepdifferencehalf = astepdifference / 2;
         adecrementcount = 0;
+        setadirection();
       }
       break;
     case 1:
@@ -454,16 +409,10 @@ void movemotors() {
       break;
     case 2:
       if(micros() >= (astepswitchtimer + motadelayramp)) {
+        setadirection();
         digitalWrite(astep, HIGH);
         astepswitchtimer = micros();
-        if(astepdirection == 0) {
-          astepcount++;
-          
-        }
-        else if(astepdirection == 1) {
-          astepcount--;
-        }
-        if(astepdifference == 0) {
+        if(astepdifference < dbsteppera) {
           astepswitch = 0;
         }
         else {
@@ -483,12 +432,13 @@ void movemotors() {
 
   switch (bstepswitch) {
     case 0:
-      if ((bstepdifference != 0) && (cstepdifference == 0)) {
+      if ((bstepdifference > dbstepperb) && (cstepdifference == 0)) {
         bstepswitch = 1;
         bstepswitchtimer = micros();  
         motbdelayramp = maxmotbdelay;
         bstepdifferencehalf = bstepdifference / 2;
         bdecrementcount = 0;
+        setbdirection();
       }
       break;
     case 1:
@@ -500,15 +450,10 @@ void movemotors() {
       break;
     case 2:
       if(micros() >= (bstepswitchtimer + motbdelayramp)) {
+        setbdirection();
         digitalWrite(bstep, HIGH);
         bstepswitchtimer = micros();
-        if(bstepdirection == 0) {
-          bstepcount++;
-        }
-        else if(bstepdirection == 1) {
-          bstepcount--;
-        }
-        if(bstepdifference == 0) {
+        if(bstepdifference < dbstepperb) {
           bstepswitch = 0;
         }
         else {
@@ -561,9 +506,10 @@ void movemotors() {
   }
   switch (dstepswitch) {
     case 0:
-      if (dstepdifference != 0) {
+      if (dstepdifference > dbstepperd) {
         dstepswitch = 1;
         dstepswitchtimer = micros();
+        setddirection();
       }
       break;
     case 1:
@@ -575,15 +521,10 @@ void movemotors() {
       break;
     case 2:
       if(micros() >= (dstepswitchtimer + motddelay)) {
+        setddirection();
         digitalWrite(dstep, HIGH);
         dstepswitchtimer = micros();
-        if(dstepdirection == 0) {
-          dstepcount--;
-        }
-        else if(dstepdirection == 1) {
-          dstepcount++;
-        }
-        if(dstepdifference == 0) {
+        if(dstepdifference < dbstepperd) {
           dstepswitch = 0;
         }
         else {
@@ -799,4 +740,37 @@ long cdegreesstep(float deg) {
 
 long ddegreesstep(float deg) {
   return (long)(deg * dratio);
+}
+
+void setadirection() {
+  if(stepperAtarget < astepcount) {
+    digitalWrite(adir, LOW); 
+  }
+  else {
+    digitalWrite(adir, HIGH);
+  }
+}
+
+void setbdirection() {
+  if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
+    digitalWrite(bdir, LOW);
+  }
+  else if((bstepdegrees(stepperBtarget) > 180) && (bstepdegrees(bstepcount) < 180)) {
+    digitalWrite(bdir, HIGH);
+  }
+  else if((bstepdegrees(stepperBtarget) > bstepdegrees(bstepcount))) {
+    digitalWrite(bdir, LOW);
+  }
+  else if((bstepdegrees(stepperBtarget) < bstepdegrees(bstepcount))) {
+    digitalWrite(bdir, HIGH);
+  }
+}
+
+void setddirection() {
+  if(stepperDtarget < dstepcount) {
+    digitalWrite(ddir, HIGH);
+  }
+  else {
+    digitalWrite(ddir, LOW);
+  }
 }
