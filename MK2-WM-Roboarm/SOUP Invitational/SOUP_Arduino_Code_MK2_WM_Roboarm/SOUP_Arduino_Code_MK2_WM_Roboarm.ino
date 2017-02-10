@@ -301,6 +301,7 @@ void setup() {
   cstepcount = cdegreesstep(0);
   encodera.zeroRegW(azero);
   encoderb.zeroRegW(bzero);
+  encoderb.setClockWise(true);
   encoderd.zeroRegW(dzero); 
 }
 
