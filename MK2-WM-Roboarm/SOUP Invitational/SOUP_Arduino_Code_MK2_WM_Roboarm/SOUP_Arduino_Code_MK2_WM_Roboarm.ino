@@ -110,10 +110,7 @@ int cstepswitch = 0;
 int dstepswitch = 0;
 
 // Timer (microseconds) that controls the pulselength of the stepper motors in the switch cases.
-unsigned long astepswitchtimer = 0;
-unsigned long bstepswitchtimer = 0;
 unsigned long cstepswitchtimer = 0;
-unsigned long dstepswitchtimer = 0;
 
 // Ratio for number of steps of motor to number of degrees of joint based on gearing and pulley ratios
 const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
@@ -303,6 +300,13 @@ void setup() {
   encoderb.zeroRegW(bzero);
   encoderb.setClockWise(true);
   encoderd.zeroRegW(dzero); 
+
+  noInterrupts();           // disable all interrupts
+  TCCR5A = 0;
+  TCCR5B = 0;
+  TCCR5B |= (1 << CS51);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK5 &= (~(1 << TOIE5));   // disable timer overflow interrupt
+  interrupts();             // enable all interrupts
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -355,8 +359,7 @@ void loop() {
 /////////////////////////////////////////////////////////////////////////////////
 
 bool steppersdone() {
-  long stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
-  return (stepdifferenceall == 0);
+  return ((astepdifference < dbsteppera) && (bstepdifference < dbstepperb) && (cstepdifference == 0) && (dstepdifference < dbstepperd));
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -390,87 +393,27 @@ void readencoders() {
 ////////////////////////////// MOVE MOTORS //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 void movemotors() {
-  switch (astepswitch) {
-    case 0:
-      if ((astepdifference > dbsteppera) && (cstepdifference == 0)) {
-        astepswitch = 1;
-        astepswitchtimer = micros();
-        motadelayramp = maxmotadelay;
-        astepdifferencehalf = astepdifference / 2;
-        adecrementcount = 0;
-        setadirection();
-      }
-      break;
-    case 1:
-      if(micros() >= (astepswitchtimer + motadelayramp)) {
-        digitalWrite(astep, LOW);
-        astepswitchtimer = micros();
-        astepswitch = 2;
-      }
-      break;
-    case 2:
-      if(micros() >= (astepswitchtimer + motadelayramp)) {
-        setadirection();
-        digitalWrite(astep, HIGH);
-        astepswitchtimer = micros();
-        if(astepdifference < dbsteppera) {
-          astepswitch = 0;
-        }
-        else {
-          astepswitch = 1;
-          if(motadelayramp > motadelay && astepdifference > astepdifferencehalf) {
-            motadelayramp -= motadelaydecrement;
-            adecrementcount++;
-          }
-          else if(motadelayramp < maxmotadelay && astepdifference < adecrementcount) {
-            motadelayramp += motadelaydecrement;
-          }
-        }
-      }
-      break;
+  if ((astepswitch == 0) && (astepdifference > dbsteppera) && (cstepdifference == 0)) {
+    astepswitch = 1;
+    motadelayramp = maxmotadelay;
+    astepdifferencehalf = astepdifference / 2;
+    adecrementcount = 0;
+    setadirection();
+    TCNT3 = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK3 |= (1 << TOIE3);   // enable timer overflow interrupt
   }
-
-
-  switch (bstepswitch) {
-    case 0:
-      if ((bstepdifference > dbstepperb) && (cstepdifference == 0)) {
-        bstepswitch = 1;
-        bstepswitchtimer = micros();  
-        motbdelayramp = maxmotbdelay;
-        bstepdifferencehalf = bstepdifference / 2;
-        bdecrementcount = 0;
-        setbdirection();
-      }
-      break;
-    case 1:
-      if(micros() >= (bstepswitchtimer + motbdelayramp)) {
-        digitalWrite(bstep, LOW);
-        bstepswitchtimer = micros();
-        bstepswitch = 2;
-      }
-      break;
-    case 2:
-      if(micros() >= (bstepswitchtimer + motbdelayramp)) {
-        setbdirection();
-        digitalWrite(bstep, HIGH);
-        bstepswitchtimer = micros();
-        if(bstepdifference < dbstepperb) {
-          bstepswitch = 0;
-        }
-        else {
-          bstepswitch = 1;
-          if(motbdelayramp > motbdelay && bstepdifference > bstepdifferencehalf) {
-            motbdelayramp -= motbdelaydecrement;
-            bdecrementcount++;
-          }
-          else if(motbdelayramp < maxmotbdelay && bstepdifference < bdecrementcount) {
-            motbdelayramp += motbdelaydecrement;
-          }
-        }
-      }
-      break;
+  
+  
+  if ((bstepswitch == 0) && (bstepdifference > dbstepperb) && (cstepdifference == 0)) {
+    bstepswitch = 1;  
+    motbdelayramp = maxmotbdelay;
+    bstepdifferencehalf = bstepdifference / 2;
+    bdecrementcount = 0;
+    setbdirection();
+    TCNT4 = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK4 |= (1 << TOIE4);   // enable timer overflow interrupt
   }
-
+  
   switch (cstepswitch) {
     case 0:
       if (cstepdifference != 0) {
@@ -505,34 +448,12 @@ void movemotors() {
       }
       break;
   }
-  switch (dstepswitch) {
-    case 0:
-      if (dstepdifference > dbstepperd) {
-        dstepswitch = 1;
-        dstepswitchtimer = micros();
-        setddirection();
-      }
-      break;
-    case 1:
-      if(micros() >= (dstepswitchtimer + motddelay)) {
-        digitalWrite(dstep, LOW);
-        dstepswitchtimer = micros();
-        dstepswitch = 2;
-      }
-      break;
-    case 2:
-      if(micros() >= (dstepswitchtimer + motddelay)) {
-        setddirection();
-        digitalWrite(dstep, HIGH);
-        dstepswitchtimer = micros();
-        if(dstepdifference < dbstepperd) {
-          dstepswitch = 0;
-        }
-        else {
-          dstepswitch = 1;
-        }
-      }
-      break;
+
+  if ((dstepswitch == 0) && (dstepdifference > dbstepperd)) {
+    dstepswitch = 1;
+    setddirection();
+    TCNT5 = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK5 |= (1 << TOIE5);   // enable timer overflow interrupt
   }
   
   switch (servoaswitch) {
@@ -743,7 +664,7 @@ long ddegreesstep(float deg) {
   return (long)(deg * dratio);
 }
 
-void setadirection() {
+inline void setadirection() {
   if(stepperAtarget < astepcount) {
     digitalWrite(adir, LOW); 
   }
@@ -752,7 +673,7 @@ void setadirection() {
   }
 }
 
-void setbdirection() {
+inline void setbdirection() {
   if((bstepdegrees(stepperBtarget) < 180) && (bstepdegrees(bstepcount) > 180)) {
     digitalWrite(bdir, LOW);
   }
@@ -767,11 +688,94 @@ void setbdirection() {
   }
 }
 
-void setddirection() {
+inline void setddirection() {
   if(stepperDtarget < dstepcount) {
     digitalWrite(ddir, HIGH);
   }
   else {
     digitalWrite(ddir, LOW);
+  }
+}
+
+ISR(TIMER3_OVF_vect)        // interrupt service routine 
+{
+  TCNT3 = (2 * motadelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+
+  switch (astepswitch) {
+    case 1:
+      digitalWrite(astep, LOW);
+      astepswitch = 2;
+      break;
+    case 2:
+      setadirection();
+      digitalWrite(astep, HIGH);
+      if(astepdifference < dbsteppera) {
+        TIMSK3 &= (~(1 << TOIE3));   // disable timer overflow interrupt
+        astepswitch = 0;
+      }
+      else {
+        astepswitch = 1;
+        if(motadelayramp > motadelay && astepdifference > astepdifferencehalf) {
+          motadelayramp -= motadelaydecrement;
+          adecrementcount++;
+        }
+        else if(motadelayramp < maxmotadelay && astepdifference < adecrementcount) {
+          motadelayramp += motadelaydecrement;
+        }
+      }
+      break;
+  }
+}
+
+ISR(TIMER4_OVF_vect)        // interrupt service routine 
+{
+  TCNT4 = (2 * motbdelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+
+  switch (bstepswitch) {
+    case 1:
+      digitalWrite(bstep, LOW);
+      bstepswitch = 2;
+      break;
+    case 2:
+      setbdirection();
+      digitalWrite(bstep, HIGH);
+      if(bstepdifference < dbstepperb) {
+        TIMSK4 &= (~(1 << TOIE4));   // disable timer overflow interrupt
+        bstepswitch = 0;
+      }
+      else {
+        bstepswitch = 1;
+        if(motbdelayramp > motbdelay && bstepdifference > bstepdifferencehalf) {
+          motbdelayramp -= motbdelaydecrement;
+          bdecrementcount++;
+        }
+        else if(motbdelayramp < maxmotbdelay && bstepdifference < bdecrementcount) {
+          motbdelayramp += motbdelaydecrement;
+        }
+      }
+      break;
+  }
+}
+
+ISR(TIMER5_OVF_vect)        // interrupt service routine 
+{
+  TCNT5 = (2 * motddelay) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+  
+  switch (dstepswitch) {
+    case 1:
+      digitalWrite(dstep, LOW);
+      dstepswitch = 2;
+      break;
+    case 2:
+      setddirection();
+      digitalWrite(dstep, HIGH);
+      if(dstepdifference < dbstepperd) {
+        TIMSK5 &= (~(1 << TOIE5));   // disable timer overflow interrupt
+        dstepswitch = 0;
+      }
+      else {
+        dstepswitch = 1;
+      }
+      break;
   }
 }
