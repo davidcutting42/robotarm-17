@@ -297,18 +297,16 @@ void setup() {
   encodera.begin();
   encoderb.begin();
   encoderd.begin();
+    
+  // Zero all stepper motors
+  encodera.zeroRegW(azero);
+  encoderb.zeroRegW(bzero);
+  encoderd.zeroRegW(dzero); 
 
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
-  encoderb.setClockWise(false);
-  encoderd.setClockWise(false);
-  
-  // Zero all stepper motors
-  cstepcount = cdegreesstep(0);
-  encodera.zeroRegW(azero);
-  encoderb.zeroRegW(bzero);
   encoderb.setClockWise(true);
-  encoderd.zeroRegW(dzero); 
+  encoderd.setClockWise(false);
 
   noInterrupts();           // disable all interrupts
   TCCR3A = 0;
@@ -333,9 +331,6 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  // Read all three I2C encoders
-  readencoders();
-
   // Update all modbus registers
   modbus_update(holdingRegs);
 
@@ -358,7 +353,20 @@ void loop() {
       inversekinematics(target);
       getstream = 1;
     }
-    movemotors();
+    
+    readencodera();
+    movemotora();
+    readencoderb();
+    movemotorb();
+    readencoderd();
+    movemotord();
+    
+    movemotorc();
+    
+    moveservoa();
+    moveservob();
+    moveservoc();
+    
     if(steppersdone() && servosdone()) {
       holdingRegs[mb_mode] = 0;
       getstream = 0;
@@ -386,32 +394,40 @@ bool steppersdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 bool servosdone() {
-  return ((servoacurrcount == servoatargetcount) && (servobcurrcount == servobtargetcount)); 
+  return ((servoacurrcount == servoatargetcount) && (servobcurrcount == servobtargetcount) && (servoccurrcount == servoctargetcount)); 
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// READ ENCODERS ////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 
-void readencoders() {
+void readencodera() {
   jointacurrent = encodera.angleR(U_DEG);
-  jointbcurrent = encoderb.angleR(U_DEG);
-  jointdcurrent = encoderd.angleR(U_DEG);
-  astepcount = adegreesstep(jointacurrent);
-  bstepcount = bdegreesstep(jointbcurrent);
-  dstepcount = ddegreesstep(jointdcurrent);
+  astepcount = adegreesstep(jointacurrent);  
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
-  holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
-  holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   astepdifference = abs(astepcount - stepperAtarget);
+}
+
+void readencoderb() {
+  jointbcurrent = encoderb.angleR(U_DEG);
+  bstepcount = bdegreesstep(jointbcurrent);  
+  holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
   bstepdifference = abs(bstepcount - stepperBtarget);
+}
+
+void readencoderd() {  
+  jointdcurrent = encoderd.angleR(U_DEG);
+  dstepcount = ddegreesstep(jointdcurrent);
+  holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   dstepdifference = abs(dstepcount - stepperDtarget);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// MOVE MOTORS //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
-void movemotors() {
+
+////////////////////////////// MOVE MOTOR A /////////////////////////////////////
+void movemotora() {
   if ((astepswitch == 0) && (astepdifference > dbsteppera) && (cstepdifference == 0)) {
     astepswitch = 1;
     motadelayramp = maxmotadelay;
@@ -421,8 +437,10 @@ void movemotors() {
     TCNT3 = 0; // Jump immediately to ISR (preloading timer)
     TIMSK3 |= (1 << TOIE3);   // enable timer overflow interrupt
   }
-  
-  
+}  
+
+////////////////////////////// MOVE MOTOR B /////////////////////////////////////
+void movemotorb() {
   if ((bstepswitch == 0) && (bstepdifference > dbstepperb) && (cstepdifference == 0)) {
     bstepswitch = 1;  
     motbdelayramp = maxmotbdelay;
@@ -432,7 +450,10 @@ void movemotors() {
     TCNT4 = 0; // Jump immediately to ISR (preloading timer)
     TIMSK4 |= (1 << TOIE4);   // enable timer overflow interrupt
   }
-  
+}
+
+////////////////////////////// MOVE MOTOR C /////////////////////////////////////
+void movemotorc() {
   switch (cstepswitch) {
     case 0:
       if (cstepdifference != 0) {
@@ -467,14 +488,22 @@ void movemotors() {
       }
       break;
   }
+}
 
+////////////////////////////// MOVE MOTOR D /////////////////////////////////////
+
+void movemotord() {
   if ((dstepswitch == 0) && (dstepdifference > dbstepperd)) {
     dstepswitch = 1;
     setddirection();
     TCNT5 = 0; // Jump immediately to ISR (preloading timer)
     TIMSK5 |= (1 << TOIE5);   // enable timer overflow interrupt
   }
-  
+}
+
+////////////////////////////// MOVE SERVO A /////////////////////////////////////
+
+void moveservoa() {
   switch (servoaswitch) {
     case 0:
       if(steppersdone() && (servoatargetcount != servoacurrcount)) {
@@ -498,6 +527,11 @@ void movemotors() {
       }
       break;
   }
+}
+
+////////////////////////////// MOVE SERVO B /////////////////////////////////////
+
+void moveservob() {
   switch (servobswitch) {
     case 0:
       if(steppersdone() && (servobtargetcount != servobcurrcount)) {
@@ -521,6 +555,11 @@ void movemotors() {
       }
       break;
   }
+}
+
+////////////////////////////// MOVE SERVO C /////////////////////////////////////
+
+void moveservoc() {
   switch (servocswitch) {
     case 0:
       if(steppersdone() && (servoctargetcount != servoccurrcount)) {
