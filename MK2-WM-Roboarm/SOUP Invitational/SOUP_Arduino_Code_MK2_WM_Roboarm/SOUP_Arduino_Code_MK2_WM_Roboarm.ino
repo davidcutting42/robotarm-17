@@ -24,13 +24,15 @@
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 #define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
-#define dmotstpmode 8 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
+#define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
 #define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 #define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
 #define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define CSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
+#define CSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo controller object
 
@@ -131,8 +133,8 @@ long cstepcount = cdegreesstep(0);
 long dstepcount = ddegreesstep(0);
 
 // Minimum motor delay (time between steps)
-const unsigned long minmotadelay = 5000 / aratio * 2.5;
-const unsigned long minmotbdelay = 5000 / bratio * 2.5;
+const unsigned long minmotadelay = 5000 / aratio * 5;
+const unsigned long minmotbdelay = 5000 / bratio * 5;
 const unsigned long minmotcdelay = 10000 / cratio * 2;
 const unsigned long minmotddelay = 10000 / dratio;
 
@@ -165,26 +167,32 @@ long bdecrementcount = 0;
 // Initializes target position of servos to zero positions
 int servoatargetcount = map(110, 0, 180, ASERVOMIN, ASERVOMAX);
 int servobtargetcount = map(180, 0, 180, BSERVOMIN, BSERVOMAX);
+int servoctargetcount = map(180, 0, 180, CSERVOMIN, CSERVOMAX);
 
 // Current position of motor, incremented towards the target to give speed control of servos.
 int servoacurrcount = 0;
 int servobcurrcount = 0;
+int servoccurrcount = 0;
 
 // Sets maximum speed of servo position change (speed control)
 const unsigned long minservoadelay = 2000;
 const unsigned long minservobdelay = 1000;
+const unsigned long minservocdelay = 2000;
 
 // Sets speed of servo position change (speed control)
 unsigned long servoadelay = minservoadelay;
 unsigned long servobdelay = minservobdelay;
+unsigned long servocdelay = minservocdelay;
 
-// Timer used in servo switch cases 
+// Timer used in servo switch cases
 unsigned long servoatimer = 0;
 unsigned long servobtimer = 0;
+unsigned long servoctimer = 0;
 
 // Selection variable used in servo switch cases
 int servoaswitch = 0;
 int servobswitch = 0;
+int servocswitch = 0;
 
 // Assists mode register in determining the current state of the machine and whether it is ready to move to next position.
 int getstream = 0;
@@ -283,6 +291,7 @@ void setup() {
   // Initialize servos to starting position
   pwm.setPWM(1, 0, servoatargetcount);
   pwm.setPWM(0, 0, servobtargetcount);
+  pwm.setPWM(2, 0, servoctargetcount);
 
   // Start encoder communication
   encodera.begin();
@@ -302,6 +311,16 @@ void setup() {
   encoderd.zeroRegW(dzero); 
 
   noInterrupts();           // disable all interrupts
+  TCCR3A = 0;
+  TCCR3B = 0;
+  TCCR3B |= (1 << CS31);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK3 &= (~(1 << TOIE3));   // disable timer overflow interrupt
+  
+  TCCR4A = 0;
+  TCCR4B = 0;
+  TCCR4B |= (1 << CS41);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK4 &= (~(1 << TOIE4));   // disable timer overflow interrupt
+  
   TCCR5A = 0;
   TCCR5B = 0;
   TCCR5B |= (1 << CS51);    // 8 prescaler (gives about 33 ms max range) 
@@ -502,6 +521,29 @@ void movemotors() {
       }
       break;
   }
+  switch (servocswitch) {
+    case 0:
+      if(steppersdone() && (servoctargetcount != servoccurrcount)) {
+        servocswitch = 1;
+        servoctimer = micros();
+      }
+      break;
+    case 1:
+      if(micros() >= (servoctimer + servocdelay)) {
+        if(servoccurrcount > servoctargetcount) {
+          servoccurrcount--;
+        }
+        else if(servoccurrcount < servoctargetcount) {
+          servoccurrcount++;
+        }
+        else {
+          servocswitch = 0;
+        } 
+        pwm.setPWM(2, 0, servoccurrcount);
+        servoctimer = micros();
+      }
+      break;
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -596,8 +638,8 @@ void inversekinematics(waypoint target) {
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
 
-  motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
-  motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
+  motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 2.5;
+  motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 2.5;
   motcdelay = target.actiontypelift ? minmotcdelay : minmotcdelay * 3;
   motddelay = minmotddelay;
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
@@ -665,7 +707,7 @@ long ddegreesstep(float deg) {
 }
 
 inline void setadirection() {
-  if(stepperAtarget < astepcount) {
+  if(astepdegrees(stepperAtarget) < bstepdegrees(astepcount)) {
     digitalWrite(adir, LOW); 
   }
   else {
