@@ -354,9 +354,6 @@ void loop() {
       target.y -= 1000;
       target.dangle -= 1000;
       inversekinematics(target);
-      moveservoa();
-      moveservob();
-      moveservoc();
       getstream = 1;
     }
     
@@ -366,6 +363,10 @@ void loop() {
     movemotorb();
     readencoderd();
     movemotord();
+
+    moveservoa();
+    moveservob();
+    moveservoc();
     
     movemotorc();
     
@@ -403,21 +404,21 @@ bool servosdone() {
 ////////////////////////////// READ ENCODERS ////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 
-void readencodera() {
+inline void readencodera() {
   jointacurrent = encodera.angleR(U_DEG);
   astepcount = adegreesstep(jointacurrent);  
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
   astepdifference = abs(astepcount - stepperAtarget);
 }
 
-void readencoderb() {
+inline void readencoderb() {
   jointbcurrent = encoderb.angleR(U_DEG);
   bstepcount = bdegreesstep(jointbcurrent);  
   holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
   bstepdifference = abs(bstepcount - stepperBtarget);
 }
 
-void readencoderd() {  
+inline void readencoderd() {  
   jointdcurrent = encoderd.angleR(U_DEG);
   dstepcount = ddegreesstep(jointdcurrent);
   holdingRegs[mb_encoderddeg] = jointdcurrent*100;
@@ -429,7 +430,7 @@ void readencoderd() {
 /////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////// MOVE MOTOR A /////////////////////////////////////
-void movemotora() {
+inline void movemotora() {
   if ((astepswitch == 0) && (astepdifference > dbsteppera) && (cstepdifference == 0)) {
     astepswitch = 1;
     motadelayramp = maxmotadelay;
@@ -442,7 +443,7 @@ void movemotora() {
 }  
 
 ////////////////////////////// MOVE MOTOR B /////////////////////////////////////
-void movemotorb() {
+inline void movemotorb() {
   if ((bstepswitch == 0) && (bstepdifference > dbstepperb) && (cstepdifference == 0)) {
     bstepswitch = 1;  
     motbdelayramp = maxmotbdelay;
@@ -455,7 +456,7 @@ void movemotorb() {
 }
 
 ////////////////////////////// MOVE MOTOR C /////////////////////////////////////
-void movemotorc() {
+inline void movemotorc() {
   switch (cstepswitch) {
     case 0:
       if (cstepdifference != 0) {
@@ -494,7 +495,7 @@ void movemotorc() {
 
 ////////////////////////////// MOVE MOTOR D /////////////////////////////////////
 
-void movemotord() {
+inline void movemotord() {
   if ((dstepswitch == 0) && (dstepdifference > dbstepperd)) {
     dstepswitch = 1;
     setddirection();
