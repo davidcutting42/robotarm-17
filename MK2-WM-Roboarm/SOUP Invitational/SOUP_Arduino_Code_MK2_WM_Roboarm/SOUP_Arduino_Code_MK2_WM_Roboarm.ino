@@ -15,6 +15,7 @@
  *  12              encoderadeg         Slave           Current angle outputted by encoder A
  *  13              encoderbdeg         Slave           Current angle outputted by encoder B
  *  14              encoderddeg         Slave           Current angle outputted by encoder D
+ *  15              servcpos            Master          Target position (degrees) of servo B
  */
 
 #include "MyTypes.h" // File that defines waypoint constructor
@@ -89,6 +90,7 @@ enum
   mb_encoderadeg,
   mb_encoderbdeg,
   mb_encoderddeg,
+  mb_servcpos,
   TOTAL_REGS_SIZE 
 };
 
@@ -347,10 +349,14 @@ void loop() {
       target.actiontypexy = holdingRegs[mb_xymode];
       target.actiontypelift = holdingRegs[mb_liftmode];
       target.actiontypeservos = 1;
+      target.scangle = holdingRegs[mb_servcpos];
       target.x -= 1000;
       target.y -= 1000;
       target.dangle -= 1000;
       inversekinematics(target);
+      moveservoa();
+      moveservob();
+      moveservoc();
       getstream = 1;
     }
     
@@ -362,10 +368,6 @@ void loop() {
     movemotord();
     
     movemotorc();
-    
-    moveservoa();
-    moveservob();
-    moveservoc();
     
     if(steppersdone() && servosdone()) {
       holdingRegs[mb_mode] = 0;
@@ -676,6 +678,7 @@ void inversekinematics(waypoint target) {
   
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
+  servoctargetcount = map(target.sbangle, 0, 180, CSERVOMIN, CSERVOMAX);
 
   motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 2.5;
   motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 2.5;
@@ -683,6 +686,7 @@ void inversekinematics(waypoint target) {
   motddelay = minmotddelay;
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
   servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
+  servocdelay = target.actiontypeservos ? minservocdelay : minservocdelay * 5;
 }
 
 float astepdegrees(long steps) {

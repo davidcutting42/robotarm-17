@@ -13,4 +13,5 @@ typedef struct {
   int actiontypexy; // 0 = slow, 1 = fast
   int actiontypelift; // 0 = slow, 1 = fast
   int actiontypeservos; // 0 = slow, 1 = fast
+  float scangle;
 } waypoint;
