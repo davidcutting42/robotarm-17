@@ -42,7 +42,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 #define U_DEG 3
 
 // Encoder Zero Positions, attained from zeroing code.
-const float azero = 4918;
+const float azero = 4918-4096;
 const float bzero = 10642;
 const float dzero = 1410;
 
@@ -200,9 +200,9 @@ int servocswitch = 0;
 int getstream = 0;
 
 // Encoder readings (degrees) for A, B, and D joints
-double jointacurrent = 0;
-double jointbcurrent = 0;
-double jointdcurrent = 0;
+float jointacurrent = 0;
+float jointbcurrent = 0;
+float jointdcurrent = 0;
 
 // Target position for joints A, B, and D
 long stepperAtarget;
@@ -210,9 +210,9 @@ long stepperBtarget;
 long stepperDtarget;
 
 // Deadband constants for each encodered motor
-const int dbsteppera = 20;
-const int dbstepperb = 20;
-const int dbstepperd = 20;
+const int dbsteppera = adegreesstep(1);
+const int dbstepperb = bdegreesstep(1);
+const int dbstepperd = cdegreesstep(1);
 
 void setup() {
   // Set up each stepper motor control pin to an output

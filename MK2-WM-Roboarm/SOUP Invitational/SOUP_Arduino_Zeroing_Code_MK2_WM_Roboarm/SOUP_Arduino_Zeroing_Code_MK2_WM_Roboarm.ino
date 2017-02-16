@@ -28,10 +28,18 @@ void setup() {
 
 void loop() {
   Serial.print("Encoder A: ");
-  Serial.println(encodera.angleR(U_DEG));
-  Serial.print("Encoder B: ");
-  Serial.println(encoderb.angleR(U_DEG));
-  Serial.print("Encoder D: ");
-  Serial.println(encoderd.angleR(U_DEG));
+  float heeeey = (encodera.angleR(U_DEG) - (4918 - 4096));
+  while(heeeey > 16384) {
+    heeeey -= 16384;
+  }
+  while(heeeey < 0) {
+    heeeey += 16384;
+  }
+  heeeey = heeeey  / 16384 * 360;
+  Serial.println(heeeey);
+  //Serial.print("Encoder B: ");
+  //Serial.println(encoderb.angleR(U_DEG));
+  //Serial.print("Encoder D: ");
+  //Serial.println(encoderd.angleR(U_DEG));
   delay(500);
 }

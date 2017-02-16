@@ -334,14 +334,14 @@ def stopmot():
 stop = Button(root, text='STOP', command=stopmot, height=2, width=8, bg='red')
 stop.grid(row=8, column=3)
 
-def encoders():
-    encoderdeg = arduino.read_registers(12, 3)
-    encoderadeg = encoderdeg[0]/100
-    encoderbdeg = encoderdeg[1]/100
-    encoderddeg = encoderdeg[2]/100
+#def encoders():
+    #encoderdeg = arduino.read_registers(12, 3)
+    #encoderadeg = encoderdeg[0]/100
+    #encoderbdeg = encoderdeg[1]/100
+    #encoderddeg = encoderdeg[2]/100
     
-    print("Encoder A: {}, B: {}, D: {}".format(encoderadeg, encoderbdeg, encoderddeg))
-    root.after(1000, encoders)
+    #print("Encoder A: {}, B: {}, D: {}".format(encoderadeg, encoderbdeg, encoderddeg))
+    #root.after(1000, encoders)
 
-root.after(1000, encoders)
+#root.after(1000, encoders)
 root.mainloop()
