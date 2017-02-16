@@ -409,7 +409,7 @@ inline void readencodera() {
   while(jointacurrent < 0) {
     jointacurrent += 16384;
   }
-  jointbcurrent = (jointbcurrent / 16384.0) * 360.0;
+  jointacurrent = (jointacurrent / 16384.0) * 360.0;
   astepcount = adegreesstep(jointacurrent);  
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
   astepdifference = abs(astepcount - stepperAtarget);
