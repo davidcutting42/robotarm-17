@@ -46,10 +46,6 @@ const float azero = 4918;
 const float bzero = 10642;
 const float dzero = 1410;
 
-//const float jointazerocalc = map((16384 / azero), 16384, 0, 0, 360);
-//const float jointbzerocalc = map((16384 / bzero), 16384, 0, 0, 360);
-//const float jointdzerocalc = map((16384 / dzero), 16384, 0, 0, 360);
-
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
 AMS_AS5048B encoderb(0x48);
@@ -214,9 +210,9 @@ long stepperBtarget;
 long stepperDtarget;
 
 // Deadband constants for each encodered motor
-const int dbsteppera = 40;
-const int dbstepperb = 40;
-const int dbstepperd = 5;
+const int dbsteppera = 20;
+const int dbstepperb = 20;
+const int dbstepperd = 20;
 
 void setup() {
   // Set up each stepper motor control pin to an output
@@ -302,19 +298,14 @@ void setup() {
   // Start encoder communication
   encodera.begin();
   encoderb.begin();
-  encoderd.begin();
-    
-  // Zero all stepper motors
-  //encodera.zeroRegW(azero);
-  //encoderb.zeroRegW(bzero);
-  //encoderd.zeroRegW(dzero); 
+  encoderd.begin(); 
 
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
   encoderb.setClockWise(true);
   encoderd.setClockWise(false);
 
-  noInterrupts();           // disable all interrupts
+  noInterrupts(); // disable all interrupts
   TCNT3 = 0;
   TCCR3A = 0;
   TCCR3B = 0;
@@ -386,9 +377,6 @@ void loop() {
   }
   else if(holdingRegs[mb_mode] == 3) {
     cstepcount = cdegreesstep(0);
-    //encodera.zeroRegW(azero);
-    //encoderb.zeroRegW(bzero);
-    //encoderd.zeroRegW(dzero); 
     holdingRegs[mb_mode] = 0;
   }
 }
@@ -407,7 +395,6 @@ bool steppersdone() {
 
 bool servosdone() {
   return ((servoacurrcount == servoatargetcount) && (servobcurrcount == servobtargetcount) && (servoccurrcount == servoctargetcount)); 
-  //return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
