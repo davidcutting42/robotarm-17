@@ -42,7 +42,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 #define U_DEG 3
 
 // Encoder Zero Positions, attained from zeroing code.
-const uint16_t azero = 803;
+const uint16_t azero = 803 + (16384/4);
 const uint16_t bzero = 5741;
 const uint16_t dzero = 8043;
 
