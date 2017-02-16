@@ -46,9 +46,9 @@ const float azero = 4918;
 const float bzero = 10642;
 const float dzero = 1410;
 
-const float jointazerocalc = map((16384 / azero), 16384, 0, 0, 360);
-const float jointbzerocalc = map((16384 / bzero), 16384, 0, 0, 360);
-const float jointdzerocalc = map((16384 / dzero), 16384, 0, 0, 360);
+//const float jointazerocalc = map((16384 / azero), 16384, 0, 0, 360);
+//const float jointbzerocalc = map((16384 / bzero), 16384, 0, 0, 360);
+//const float jointdzerocalc = map((16384 / dzero), 16384, 0, 0, 360);
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
@@ -204,9 +204,9 @@ int servocswitch = 0;
 int getstream = 0;
 
 // Encoder readings (degrees) for A, B, and D joints
-float jointacurrent = 0;
-float jointbcurrent = 0;
-float jointdcurrent = 0;
+double jointacurrent = 0;
+double jointbcurrent = 0;
+double jointdcurrent = 0;
 
 // Target position for joints A, B, and D
 long stepperAtarget;
@@ -415,39 +415,42 @@ bool servosdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 inline void readencodera() {
-  jointacurrent = encodera.angleR(U_DEG) - 90 + jointazerocalc;
-  while(jointacurrent >= 360) {
-    jointacurrent -= 360;
+  jointacurrent = encodera.angleR(U_RAW) - azero;
+  while(jointacurrent > 16384) {
+    jointacurrent -= 16384;
   }
   while(jointacurrent < 0) {
-    jointacurrent += 360;
+    jointacurrent += 16384;
   }
+  jointbcurrent = (jointbcurrent / 16384.0) * 360.0;
   astepcount = adegreesstep(jointacurrent);  
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
   astepdifference = abs(astepcount - stepperAtarget);
 }
 
 inline void readencoderb() {
-  jointbcurrent = encoderb.angleR(U_DEG) + jointbzerocalc;
-  while(jointbcurrent >= 360) {
-    jointbcurrent -= 360;
+  jointbcurrent = encoderb.angleR(U_RAW) - bzero;
+  while(jointbcurrent > 16384) {
+    jointbcurrent -= 16384;
   }
   while(jointbcurrent < 0) {
-    jointbcurrent += 360;
+    jointbcurrent += 16384;
   }
+  jointbcurrent = (jointbcurrent / 16384.0) * 360.0;
   bstepcount = bdegreesstep(jointbcurrent);  
   holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
   bstepdifference = abs(bstepcount - stepperBtarget);
 }
 
 inline void readencoderd() {  
-  jointdcurrent = encoderd.angleR(U_DEG) + jointdzerocalc;
-  while(jointdcurrent >= 360) {
-    jointdcurrent -= 360;
+  jointdcurrent = encoderd.angleR(U_RAW) - dzero;
+  while(jointdcurrent > 16384) {
+    jointdcurrent -= 16384;
   }
   while(jointdcurrent < 0) {
-    jointdcurrent += 360;
+    jointdcurrent += 16384;
   }
+  jointdcurrent = (jointdcurrent / 16384.0) * 360.0;
   dstepcount = ddegreesstep(jointdcurrent);
   holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   dstepdifference = abs(dstepcount - stepperDtarget);
