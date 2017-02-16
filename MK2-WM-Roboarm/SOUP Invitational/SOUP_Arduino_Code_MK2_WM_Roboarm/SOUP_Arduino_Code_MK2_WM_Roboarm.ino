@@ -42,9 +42,13 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 #define U_DEG 3
 
 // Encoder Zero Positions, attained from zeroing code.
-const uint16_t azero = 803 + (16384/4);
-const uint16_t bzero = 5741;
-const uint16_t dzero = 8043;
+const float azero = 4918;
+const float bzero = 10642;
+const float dzero = 1410;
+
+const float jointazerocalc = map((16384 / azero), 16384, 0, 0, 360);
+const float jointbzerocalc = map((16384 / bzero), 16384, 0, 0, 360);
+const float jointdzerocalc = map((16384 / dzero), 16384, 0, 0, 360);
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
@@ -210,9 +214,9 @@ long stepperBtarget;
 long stepperDtarget;
 
 // Deadband constants for each encodered motor
-const int dbsteppera = 20;
-const int dbstepperb = 20;
-const int dbstepperd = 20;
+const int dbsteppera = 40;
+const int dbstepperb = 40;
+const int dbstepperd = 5;
 
 void setup() {
   // Set up each stepper motor control pin to an output
@@ -301,9 +305,9 @@ void setup() {
   encoderd.begin();
     
   // Zero all stepper motors
-  encodera.zeroRegW(azero);
-  encoderb.zeroRegW(bzero);
-  encoderd.zeroRegW(dzero); 
+  //encodera.zeroRegW(azero);
+  //encoderb.zeroRegW(bzero);
+  //encoderd.zeroRegW(dzero); 
 
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
@@ -382,9 +386,9 @@ void loop() {
   }
   else if(holdingRegs[mb_mode] == 3) {
     cstepcount = cdegreesstep(0);
-    encodera.zeroRegW(azero);
-    encoderb.zeroRegW(bzero);
-    encoderd.zeroRegW(dzero); 
+    //encodera.zeroRegW(azero);
+    //encoderb.zeroRegW(bzero);
+    //encoderd.zeroRegW(dzero); 
     holdingRegs[mb_mode] = 0;
   }
 }
@@ -411,21 +415,39 @@ bool servosdone() {
 /////////////////////////////////////////////////////////////////////////////////
 
 inline void readencodera() {
-  jointacurrent = encodera.angleR(U_DEG);
+  jointacurrent = encodera.angleR(U_DEG) - 90 + jointazerocalc;
+  while(jointacurrent >= 360) {
+    jointacurrent -= 360;
+  }
+  while(jointacurrent < 0) {
+    jointacurrent += 360;
+  }
   astepcount = adegreesstep(jointacurrent);  
   holdingRegs[mb_encoderadeg] = jointacurrent*100;
   astepdifference = abs(astepcount - stepperAtarget);
 }
 
 inline void readencoderb() {
-  jointbcurrent = encoderb.angleR(U_DEG);
+  jointbcurrent = encoderb.angleR(U_DEG) + jointbzerocalc;
+  while(jointbcurrent >= 360) {
+    jointbcurrent -= 360;
+  }
+  while(jointbcurrent < 0) {
+    jointbcurrent += 360;
+  }
   bstepcount = bdegreesstep(jointbcurrent);  
   holdingRegs[mb_encoderbdeg] = jointbcurrent*100;
   bstepdifference = abs(bstepcount - stepperBtarget);
 }
 
 inline void readencoderd() {  
-  jointdcurrent = encoderd.angleR(U_DEG);
+  jointdcurrent = encoderd.angleR(U_DEG) + jointdzerocalc;
+  while(jointdcurrent >= 360) {
+    jointdcurrent -= 360;
+  }
+  while(jointdcurrent < 0) {
+    jointdcurrent += 360;
+  }
   dstepcount = ddegreesstep(jointdcurrent);
   holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   dstepdifference = abs(dstepcount - stepperDtarget);
