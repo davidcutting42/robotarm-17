@@ -30,7 +30,7 @@
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
 #define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
-#define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
+#define BSERVOMIN  100 // this is the 'minimum' pulse length count (out of 4096)
 #define BSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 #define CSERVOMIN  300 // this is the 'minimum' pulse length count (out of 4096)
 #define CSERVOMAX  620 // this is the 'maximum' pulse length count (out of 4096)

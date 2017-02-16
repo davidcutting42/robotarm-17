@@ -8,7 +8,8 @@
 
 // Define constants for the encoders
 #define U_RAW 1
-#define U_DEG 3
+//#define U_DEG 3
+#define U_DEG 1
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
