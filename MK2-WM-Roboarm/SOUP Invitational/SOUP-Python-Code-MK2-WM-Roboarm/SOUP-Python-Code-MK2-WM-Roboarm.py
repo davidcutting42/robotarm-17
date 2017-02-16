@@ -306,7 +306,7 @@ def runnext():
     servocpos = wapoint[12]
     mode = 2
 
-    updatearduinoregisters()
+    updatearduinoregisters(0)
     root.update_idletasks()
 
 runnextbut = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')

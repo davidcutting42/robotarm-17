@@ -28,12 +28,12 @@
 #define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
-#define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 #define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
-#define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
-#define CSERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define CSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define BSERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
+#define CSERVOMIN  300 // this is the 'minimum' pulse length count (out of 4096)
+#define CSERVOMAX  620 // this is the 'maximum' pulse length count (out of 4096)
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo controller object
 
@@ -135,8 +135,8 @@ long cstepcount = cdegreesstep(0);
 long dstepcount = ddegreesstep(0);
 
 // Minimum motor delay (time between steps)
-const unsigned long minmotadelay = 5000 / aratio * 5;
-const unsigned long minmotbdelay = 5000 / bratio * 5;
+const unsigned long minmotadelay = 5000 / aratio * 2;
+const unsigned long minmotbdelay = 5000 / bratio * 2;
 const unsigned long minmotcdelay = 10000 / cratio * 2;
 const unsigned long minmotddelay = 10000 / dratio;
 
@@ -360,18 +360,20 @@ void loop() {
       getstream = 1;
     }
     
-    readencodera();
-    movemotora();
-    readencoderb();
-    movemotorb();
-    readencoderd();
-    movemotord();
-
-    moveservoa();
-    moveservob();
-    moveservoc();
-    
-    movemotorc();
+    if(cstepdifference == 0) {
+      readencodera();
+      readencoderb();
+      readencoderd();
+      movemotora();
+      movemotorb();
+      movemotord();
+      moveservoa();
+      moveservob();
+      moveservoc();
+    } 
+    else {
+      movemotorc();
+    }
     
     if(steppersdone() && servosdone()) {
       holdingRegs[mb_mode] = 0;
@@ -435,7 +437,7 @@ inline void readencoderd() {
 
 ////////////////////////////// MOVE MOTOR A /////////////////////////////////////
 inline void movemotora() {
-  if ((astepswitch == 0) && (astepdifference > dbsteppera) && (cstepdifference == 0)) {
+  if ((astepswitch == 0) && (astepdifference > dbsteppera)) {
     astepswitch = 1;
     motadelayramp = maxmotadelay;
     astepdifferencehalf = astepdifference / 2;
@@ -449,7 +451,7 @@ inline void movemotora() {
 
 ////////////////////////////// MOVE MOTOR B /////////////////////////////////////
 inline void movemotorb() {
-  if ((bstepswitch == 0) && (bstepdifference > dbstepperb) && (cstepdifference == 0)) {
+  if ((bstepswitch == 0) && (bstepdifference > dbstepperb)) {
     bstepswitch = 1;  
     motbdelayramp = maxmotbdelay;
     bstepdifferencehalf = bstepdifference / 2;
@@ -686,7 +688,7 @@ void inversekinematics(waypoint target) {
   
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
-  servoctargetcount = map(target.sbangle, 0, 180, CSERVOMIN, CSERVOMAX);
+  servoctargetcount = map(target.scangle, 0, 180, CSERVOMIN, CSERVOMAX);
 
   motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 2.5;
   motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 2.5;
