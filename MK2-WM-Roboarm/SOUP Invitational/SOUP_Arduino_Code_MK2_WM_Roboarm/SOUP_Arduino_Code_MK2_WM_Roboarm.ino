@@ -210,9 +210,9 @@ long stepperBtarget;
 long stepperDtarget;
 
 // Deadband constants for each encodered motor
-const int dbsteppera = 5;
-const int dbstepperb = 5;
-const int dbstepperd = 5;
+const int dbsteppera = 20;
+const int dbstepperb = 20;
+const int dbstepperd = 20;
 
 void setup() {
   // Set up each stepper motor control pin to an output
@@ -311,20 +311,23 @@ void setup() {
   encoderd.setClockWise(false);
 
   noInterrupts();           // disable all interrupts
+  TCNT3 = 0;
   TCCR3A = 0;
   TCCR3B = 0;
-  TCCR3B |= (1 << CS31);    // 8 prescaler (gives about 33 ms max range) 
-  TIMSK3 &= (~(1 << TOIE3));   // disable timer overflow interrupt
+  TCCR3B |= (1 << CS31)|(1 << WGM32);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK3 &= (~(1 << OCIE3A));   // disable timer overflow interrupt
   
+  TCNT4 = 0;
   TCCR4A = 0;
   TCCR4B = 0;
-  TCCR4B |= (1 << CS41);    // 8 prescaler (gives about 33 ms max range) 
-  TIMSK4 &= (~(1 << TOIE4));   // disable timer overflow interrupt
+  TCCR4B |= (1 << CS41)|(1 << WGM42);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK4 &= (~(1 << OCIE4A));   // disable timer overflow interrupt
   
+  TCNT5 = 0;
   TCCR5A = 0;
   TCCR5B = 0;
-  TCCR5B |= (1 << CS51);    // 8 prescaler (gives about 33 ms max range) 
-  TIMSK5 &= (~(1 << TOIE5));   // disable timer overflow interrupt
+  TCCR5B |= (1 << CS51)|(1 << WGM52);    // 8 prescaler (gives about 33 ms max range) 
+  TIMSK5 &= (~(1 << OCIE5A));   // disable timer overflow interrupt
   interrupts();             // enable all interrupts
 }
 
@@ -398,6 +401,7 @@ bool steppersdone() {
 
 bool servosdone() {
   return ((servoacurrcount == servoatargetcount) && (servobcurrcount == servobtargetcount) && (servoccurrcount == servoctargetcount)); 
+  //return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -437,8 +441,9 @@ inline void movemotora() {
     astepdifferencehalf = astepdifference / 2;
     adecrementcount = 0;
     setadirection();
-    TCNT3 = 0; // Jump immediately to ISR (preloading timer)
-    TIMSK3 |= (1 << TOIE3);   // enable timer overflow interrupt
+    TCNT3 = 0;
+    OCR3A = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK3 |= (1 << OCIE3A);   // enable timer overflow interrupt
   }
 }  
 
@@ -450,8 +455,9 @@ inline void movemotorb() {
     bstepdifferencehalf = bstepdifference / 2;
     bdecrementcount = 0;
     setbdirection();
-    TCNT4 = 0; // Jump immediately to ISR (preloading timer)
-    TIMSK4 |= (1 << TOIE4);   // enable timer overflow interrupt
+    TCNT4 = 0; 
+    OCR4A = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK4 |= (1 << OCIE4A);   // enable timer overflow interrupt
   }
 }
 
@@ -499,8 +505,9 @@ inline void movemotord() {
   if ((dstepswitch == 0) && (dstepdifference > dbstepperd)) {
     dstepswitch = 1;
     setddirection();
-    TCNT5 = 0; // Jump immediately to ISR (preloading timer)
-    TIMSK5 |= (1 << TOIE5);   // enable timer overflow interrupt
+    TCNT5 = 0;
+    OCR5A = 0; // Jump immediately to ISR (preloading timer)
+    TIMSK5 |= (1 << OCIE5A);   // enable timer overflow interrupt
   }
 }
 
@@ -751,7 +758,7 @@ long ddegreesstep(float deg) {
 }
 
 inline void setadirection() {
-  if(astepdegrees(stepperAtarget) < bstepdegrees(astepcount)) {
+  if(astepdegrees(stepperAtarget) < astepdegrees(astepcount)) {
     digitalWrite(adir, LOW); 
   }
   else {
@@ -783,9 +790,9 @@ inline void setddirection() {
   }
 }
 
-ISR(TIMER3_OVF_vect)        // interrupt service routine 
+ISR(TIMER3_COMPA_vect)        // interrupt service routine 
 {
-  TCNT3 = (2 * motadelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+  OCR3A = (2 * motadelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
 
   switch (astepswitch) {
     case 1:
@@ -796,7 +803,7 @@ ISR(TIMER3_OVF_vect)        // interrupt service routine
       setadirection();
       digitalWrite(astep, HIGH);
       if(astepdifference < dbsteppera) {
-        TIMSK3 &= (~(1 << TOIE3));   // disable timer overflow interrupt
+        TIMSK3 &= (~(1 << OCIE3A));   // disable timer overflow interrupt
         astepswitch = 0;
       }
       else {
@@ -813,10 +820,10 @@ ISR(TIMER3_OVF_vect)        // interrupt service routine
   }
 }
 
-ISR(TIMER4_OVF_vect)        // interrupt service routine 
+ISR(TIMER4_COMPA_vect)        // interrupt service routine 
 {
-  TCNT4 = (2 * motbdelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
-
+  OCR4A = (2 * motbdelayramp) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+  
   switch (bstepswitch) {
     case 1:
       digitalWrite(bstep, LOW);
@@ -826,7 +833,7 @@ ISR(TIMER4_OVF_vect)        // interrupt service routine
       setbdirection();
       digitalWrite(bstep, HIGH);
       if(bstepdifference < dbstepperb) {
-        TIMSK4 &= (~(1 << TOIE4));   // disable timer overflow interrupt
+        TIMSK4 &= (~(1 << OCIE4A));   // disable timer overflow interrupt
         bstepswitch = 0;
       }
       else {
@@ -843,9 +850,9 @@ ISR(TIMER4_OVF_vect)        // interrupt service routine
   }
 }
 
-ISR(TIMER5_OVF_vect)        // interrupt service routine 
+ISR(TIMER5_COMPA_vect)        // interrupt service routine 
 {
-  TCNT5 = (2 * motddelay) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
+  OCR5A = (2 * motddelay) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
   
   switch (dstepswitch) {
     case 1:
@@ -856,7 +863,7 @@ ISR(TIMER5_OVF_vect)        // interrupt service routine
       setddirection();
       digitalWrite(dstep, HIGH);
       if(dstepdifference < dbstepperd) {
-        TIMSK5 &= (~(1 << TOIE5));   // disable timer overflow interrupt
+        TIMSK5 &= (~(1 << OCIE5A));   // disable timer overflow interrupt
         dstepswitch = 0;
       }
       else {

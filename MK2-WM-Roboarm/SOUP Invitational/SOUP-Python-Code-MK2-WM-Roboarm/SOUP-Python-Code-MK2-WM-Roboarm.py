@@ -57,7 +57,7 @@ encoderbdeg = 0
 encoderddeg = 0
 servocpos = 90
 
-def updatearduinoregisters(): #Function for stepper control and spacenav input
+def updatearduinoregisters(event): #Function for stepper control and spacenav input
     global xtarget, ytarget, bendpreference, basetarget, servoapos, servobpos, motdangle, xymode, liftmode, mode, servocpos
 
     registers = [xtarget+1000, ytarget+1000, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle+1000, xymode, liftmode]
@@ -66,14 +66,7 @@ def updatearduinoregisters(): #Function for stepper control and spacenav input
 
     root.update_idletasks()
 
-    encoderdeg = arduino.read_registers(12, 3)
-    print encoderdeg
     
-    #encoderadeg = encoderdeg[0]/100
-    #encoderbdeg = encoderdeg[1]/100
-    #encoderddeg = encoderdeg[2]/100
-    
-    #print("Encoder A: {}, B: {}, C: {}".format(encoderadeg, encoderbdeg, encoderddeg))
 
 
 xval = Label(root, text=xtarget)
@@ -310,7 +303,7 @@ def runnext():
     motdval.config(text=motdangle)
     xymode = wapoint[10]
     liftmode = wapoint[11]
-    servocpos = wapoint[15]
+    servocpos = wapoint[12]
     mode = 2
 
     updatearduinoregisters()
@@ -341,4 +334,14 @@ def stopmot():
 stop = Button(root, text='STOP', command=stopmot, height=2, width=8, bg='red')
 stop.grid(row=8, column=3)
 
+def encoders():
+    encoderdeg = arduino.read_registers(12, 3)
+    encoderadeg = encoderdeg[0]/100
+    encoderbdeg = encoderdeg[1]/100
+    encoderddeg = encoderdeg[2]/100
+    
+    print("Encoder A: {}, B: {}, D: {}".format(encoderadeg, encoderbdeg, encoderddeg))
+    root.after(1000, encoders)
+
+root.after(1000, encoders)
 root.mainloop()
