@@ -68,8 +68,10 @@ def updatearduinoregisters(event): #Function for stepper control and spacenav in
 
 class incdec():
     'Common class for all tkinter motor interface portions controlled by keystrokes'
-    def __init__(self, label, value, decbutton, incbutton, incdecres, labelcol, labelrow, valuecol, valuerow):
+    def __init__(self, label, value, decbutton, incbutton, incdecres, labelcol, labelrow, valuecol, valuerow, minimum, maximum):
         global root
+        self.minimum = minimum
+        self.maximum = maximum
         self.value = value
         self.incdecres = incdecres
         self.valdisp = Label(root, text=self.value)
@@ -78,15 +80,22 @@ class incdec():
         self.labdisp.grid(row=labelrow, column=labelcol)
         root.bind_all(decbutton, self.decrement)
         root.bind_all(incbutton, self.increment)
-        root.bind_all(printbut, self.printval)
     def increment(self, event):
         self.value += self.incdecres
         self.valdisp.config(text=self.value)
-        updatearduinoregisters()
+        if(self.value < self.minimum):
+            self.value = self.minimum
+        if(self.value > self.maximum):
+            self.value = self.maximum
+        updatearduinoregisters(0)
     def decrement(self, event):
         self.value -= self.incdecres
         self.valdisp.config(text=self.value)
-        updatearduinoregisters()
+        if(self.value < self.minimum):
+            self.value = self.minimum
+        if(self.value > self.maximum):
+            self.value = self.maximum
+        updatearduinoregisters(0)
 
 xincdec = incdec("X:", xtarget, "<Left>", "<Right>", 1, 0, 0, 1, 0, -10000, 10000)
 yincdec = incdec("Y:", ytarget, "<Up>", "<Down>", 1, 0, 1, 1, 1, -10000, 10000)
@@ -94,8 +103,8 @@ bendval = incdec("Bend:", bendpreference, "<F1>", "<F2>", 1, 0, 2, 1, 2, 0, 1)
 baseval = incdec("Base:", basetarget, "<Shift-Up>", "<Shift-Down>", 1, 0, 3, 1, 3, 0, 95)
 servoaval = incdec("Servo A (Fork):", servoapos, "9", "0", 5, 0, 4, 1, 4, 0, 180)
 servobval = incdec("Servo B (Flip):", servobpos, "-", "=", 5, 0, 5, 1, 5, 0, 180)
-servocval = incdeg("Servo C (Lift):", servocpos, "[", "]", 5, 0, 6, 1, 6, 0, 180)
-motdval = incdeg("Stepper D:", motdangle, ",", ".", 3, 0, 7, 1, 7, 0, 360)
+servocval = incdec("Servo C (Lift):", servocpos, "[", "]", 5, 0, 6, 1, 6, 0, 180)
+motdval = incdec("Stepper D:", motdangle, ",", ".", 3, 0, 7, 1, 7, 0, 360)
 
 def printresults(event):
     global xtarget, ytarget, bendpreference, basetarget, servoapos, servobpos, motdangle, servocpos, liftmode, xymode
@@ -125,19 +134,19 @@ def runnext(event):
     print wapoint
     
     xtarget = wapoint[0] - 1000
-    xval.config(text=xtarget)
+    xval.config(text=xincdec.value)
     ytarget = wapoint[1] - 1000
-    yval.config(text=ytarget)
+    yval.config(text=yincdec.value)
     bendpreference = wapoint[2]
-    bendval.config(text=bendpreference)
+    bendval.config(text=bendpreference.value)
     basetarget = wapoint[3]
-    baseval.config(text=basetarget)
+    baseval.config(text=basetarget.value)
     servoapos = wapoint[7]
-    servoaval.config(text=servoapos)
+    servoaval.config(text=servoapos.value)
     servobpos = wapoint[8]
-    servobval.config(text=servobpos)
+    servobval.config(text=servobpos.value)
     motdangle = wapoint[9]
-    motdval.config(text=motdangle)
+    motdval.config(text=motdangle.value)
     xymode = wapoint[10]
     liftmode = wapoint[11]
     servocpos = wapoint[12]
@@ -166,7 +175,7 @@ root.bind("<Tab>", runnext)
 root.bind("p",printresults)
 root.bind("z", zero)
 root.bind("<Shift-Tab>", checksequence)
-root.bind("<Space>", stopmot)
+root.bind("<space>", stopmot)
 root.bind("<Return>", updatearduinoregisters)
 
 root.mainloop()
