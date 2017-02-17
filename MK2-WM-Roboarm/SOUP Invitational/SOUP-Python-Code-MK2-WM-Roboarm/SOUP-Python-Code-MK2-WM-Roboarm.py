@@ -118,7 +118,7 @@ def zero(event):
     basetarget = 0
     servoapos = 0 #opposite is 45 (Fork)
     servobpos = 180 #opposite is 20 (Flip)
-    servobpos = 90
+    servobpos = 0
     motdangle = 0
     mode = 3
     updatearduinoregisters(0)
@@ -132,21 +132,21 @@ def runnext(event):
     wapoint[0] += 1000
     wapoint[1] += 1000
     print wapoint
-    
+
     xtarget = wapoint[0] - 1000
-    xval.config(text=xincdec.value)
+    xincdec.valdisp.config(text=xincdec.value)
     ytarget = wapoint[1] - 1000
-    yval.config(text=yincdec.value)
+    yincdec.valdisp.config(text=yincdec.value)
     bendpreference = wapoint[2]
-    bendval.config(text=bendpreference.value)
+    bendval.valdisp.config(text=bendval.value)
     basetarget = wapoint[3]
-    baseval.config(text=basetarget.value)
+    baseval.valdisp.config(text=baseval.value)
     servoapos = wapoint[7]
-    servoaval.config(text=servoapos.value)
+    servoaval.valdisp.config(text=servoaval.value)
     servobpos = wapoint[8]
-    servobval.config(text=servobpos.value)
+    servobval.valdisp.config(text=servobval.value)
     motdangle = wapoint[9]
-    motdval.config(text=motdangle.value)
+    motdval.valdisp.config(text=motdval.value)
     xymode = wapoint[10]
     liftmode = wapoint[11]
     servocpos = wapoint[12]
