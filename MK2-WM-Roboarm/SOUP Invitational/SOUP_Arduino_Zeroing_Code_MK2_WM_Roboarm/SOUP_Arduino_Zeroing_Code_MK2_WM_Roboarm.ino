@@ -27,8 +27,8 @@ void setup() {
 }
 
 void loop() {
-  Serial.print("Encoder A: ");
-  float heeeey = (encodera.angleR(U_DEG) - (4918 - 4096));
+  Serial.print("Encoder D: ");
+  float heeeey = (encoderd.angleR(U_DEG) - (1410));
   while(heeeey > 16384) {
     heeeey -= 16384;
   }

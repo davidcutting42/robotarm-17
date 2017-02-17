@@ -711,7 +711,7 @@ void inversekinematics(waypoint target) {
   servocdelay = target.actiontypeservos ? minservocdelay : minservocdelay * 5;
 }
 
-float astepdegrees(long steps) {
+inline float astepdegrees(long steps) {
   int degreescalc = (float)steps / aratio;
   while(degreescalc > 360) {
     degreescalc -= 360.0;
@@ -722,7 +722,7 @@ float astepdegrees(long steps) {
   return degreescalc;
 }
 
-float bstepdegrees(long steps) {
+inline float bstepdegrees(long steps) {
   int degreescalc = (float)steps / bratio;
   while(degreescalc > 360) {
     degreescalc -= 360.0;
@@ -733,7 +733,7 @@ float bstepdegrees(long steps) {
   return degreescalc;
 }
 
-float cstepdegrees(long steps) {
+inline float cstepdegrees(long steps) {
   int degreescalc = (float)steps / cratio;
   while(degreescalc > 360 && degreescalc) {
     degreescalc -= 360.0;
@@ -744,7 +744,7 @@ float cstepdegrees(long steps) {
   return degreescalc;
 }
 
-float dstepdegrees(long steps) {
+inline float dstepdegrees(long steps) {
   int degreescalc = (float)steps / dratio;
   while(degreescalc > 360 && degreescalc) {
     degreescalc -= 360.0;
@@ -755,19 +755,19 @@ float dstepdegrees(long steps) {
   return degreescalc;
 }
 
-long adegreesstep(float deg) {
+inline long adegreesstep(float deg) {
   return (long)(deg * aratio);
 }
 
-long bdegreesstep(float deg) {
+inline long bdegreesstep(float deg) {
   return (long)(deg * bratio);
 }
 
-long cdegreesstep(float deg) {
+inline long cdegreesstep(float deg) {
   return (long)(deg * cratio);
 }
 
-long ddegreesstep(float deg) {
+inline long ddegreesstep(float deg) {
   return (long)(deg * dratio);
 }
 
@@ -796,7 +796,7 @@ inline void setbdirection() {
 }
 
 inline void setddirection() {
-  if(stepperDtarget < dstepcount) {
+  if(dstepdegrees(stepperDtarget) < dstepdegrees(dstepcount)) {
     digitalWrite(ddir, HIGH);
   }
   else {
