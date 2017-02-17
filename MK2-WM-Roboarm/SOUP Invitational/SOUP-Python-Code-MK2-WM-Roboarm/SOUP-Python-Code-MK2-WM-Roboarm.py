@@ -272,7 +272,7 @@ def zero():
     updatearduinoregisters(0)
 
 zero = Button(root, text="Zero", command=zero, height=2, width=8, bg='navy blue', fg='white')
-zero.grid(row=8, column=2)
+zero.grid(row=9, column=2)
 
 root.bind("<Return>",updatearduinoregisters)
 
