@@ -66,218 +66,55 @@ def updatearduinoregisters(event): #Function for stepper control and spacenav in
 
     root.update_idletasks()
 
-    
+class incdec():
+    'Common class for all tkinter motor interface portions controlled by keystrokes'
+    def __init__(self, label, value, decbutton, incbutton, incdecres, labelcol, labelrow, valuecol, valuerow):
+        global root
+        self.value = value
+        self.incdecres = incdecres
+        self.valdisp = Label(root, text=self.value)
+        self.valdisp.grid(row=valuerow, column=valuecol)
+        self.labdisp = Label(root, text=label)
+        self.labdisp.grid(row=labelrow, column=labelcol)
+        root.bind_all(decbutton, self.decrement)
+        root.bind_all(incbutton, self.increment)
+        root.bind_all(printbut, self.printval)
+    def increment(self, event):
+        self.value += self.incdecres
+        self.valdisp.config(text=self.value)
+        updatearduinoregisters()
+    def decrement(self, event):
+        self.value -= self.incdecres
+        self.valdisp.config(text=self.value)
+        updatearduinoregisters()
 
-
-xval = Label(root, text=xtarget)
-xval.grid(row=0, column=2)
-
-def xdecrement(event):
-    global xtarget
-    xtarget -= 1
-    xval.config(text=xtarget)
-    
-def xincrement(event):
-    global xtarget
-    xtarget += 1
-    xval.config(text=xtarget)
-
-xlab = Label(root, text="X: ")
-xlab.grid(row=0, column=0)
-
-root.bind("<Left>",xdecrement)
-root.bind("<Right>",xincrement)
-
-
-yval = Label(root, text=ytarget)
-yval.grid(row=1, column=2)
-
-def ydecrement(event):
-    global ytarget
-    ytarget -= 1
-    yval.config(text=ytarget)
-    
-def yincrement(event):
-    global ytarget
-    ytarget += 1
-    yval.config(text=ytarget)
-    
-    
-ylab = Label(root, text="Y: ")
-ylab.grid(row=1, column=0)
-
-root.bind("<Up>",yincrement)
-root.bind("<Down>",ydecrement)
-
-
-bendval = Label(root, text=bendpreference)
-bendval.grid(row=2, column=2)
- 
-def benddecrement(event):
-    global bendpreference
-    bendpreference = 0
-    bendval.config(text=bendpreference)
-    
-def bendincrement(event):
-    global bendpreference
-    bendpreference = 1
-    bendval.config(text=bendpreference)
-    
-bendlab = Label(root, text="Bend: ")
-bendlab.grid(row=2, column=0)
-
-root.bind("<F2>",bendincrement)
-root.bind("<F1>",benddecrement)
-
-
-baseval = Label(root, text=basetarget)
-baseval.grid(row=3, column=2)
-    
-def basedecrement(event):
-    global basetarget
-    basetarget -= 1
-    if(basetarget < 0):
-        basetarget = 0
-    baseval.config(text=basetarget)
-    
-    
-def baseincrement(event):
-    global basetarget
-    basetarget += 1
-    if(basetarget > 95):
-        basetarget = 95
-    baseval.config(text=basetarget)
-    
-baselab = Label(root, text="Base: ")
-baselab.grid(row=3, column=0)
-
-root.bind("<Shift-Up>",baseincrement)
-root.bind("<Shift-Down>",basedecrement)
-
-
-servoaval = Label(root, text=servoapos)
-servoaval.grid(row=4, column=2)
-  
-def servoadecrement(event):
-    global servoapos
-    servoapos -= 1
-    if(servoapos < 10):
-        servoapos = 10
-    servoaval.config(text=servoapos)
-      
-def servoaincrement(event):
-    global servoapos
-    servoapos += 1
-    if(servoapos > 130):
-        servoapos = 130
-    servoaval.config(text=servoapos)
-    
-servoalab = Label(root, text="Servo A: ")
-servoalab.grid(row=4, column=0)
-
-root.bind("9",servoadecrement)
-root.bind("0",servoaincrement)
-
-servobval = Label(root, text=servobpos)
-servobval.grid(row=5, column=2)
-
-def servobdecrement(event):
-    global servobpos
-    servobpos -= 1
-    if(servobpos < 0):
-        servobpos = 0
-    servobval.config(text=servobpos)
-    
-    
-def servobincrement(event):
-    global servobpos
-    servobpos += 1
-    if(servobpos > 145):
-        servobpos = 145
-    servobval.config(text=servobpos)
-    
-
-servoblab = Label(root, text="Servo B: ")
-servoblab.grid(row=5, column=0)
-
-root.bind("[",servobdecrement)
-root.bind("]",servobincrement)
-
-servocval = Label(root, text=servocpos)
-servocval.grid(row=6, column=2)
-  
-def servocdecrement(event):
-    global servocpos
-    servocpos -= 1
-    if(servocpos < 10):
-        servocpos = 10
-    servocval.config(text=servocpos)
-      
-def servocincrement(event):
-    global servocpos
-    servocpos += 1
-    if(servocpos > 130):
-        servocpos = 130
-    servocval.config(text=servocpos)
-    
-servoclab = Label(root, text="Servo C: ")
-servoclab.grid(row=6, column=0)
-
-root.bind("-",servocdecrement)
-root.bind("=",servocincrement)
-
-
-motdval = Label(root, text=motdangle)
-motdval.grid(row=8, column=2)
-
-def motddecrement(event):
-    global motdangle 
-    motdangle -= 1
-    if(motdangle < -360):
-        motdangle = -360
-    motdval.config(text=motdangle)
-    
-def motdincrement(event):
-    global motdangle 
-    motdangle += 1
-    if(motdangle > 360):
-        motdangle = 360
-    motdval.config(text=motdangle)  
-
-motdlab = Label(root, text="Motor D: ")
-motdlab.grid(row=8, column=0)
-
-root.bind(",",motddecrement)
-root.bind(".",motdincrement)
-
+xincdec = incdec("X:", xtarget, "<Left>", "<Right>", 1, 0, 0, 1, 0, -10000, 10000)
+yincdec = incdec("Y:", ytarget, "<Up>", "<Down>", 1, 0, 1, 1, 1, -10000, 10000)
+bendval = incdec("Bend:", bendpreference, "<F1>", "<F2>", 1, 0, 2, 1, 2, 0, 1)
+baseval = incdec("Base:", basetarget, "<Shift-Up>", "<Shift-Down>", 1, 0, 3, 1, 3, 0, 95)
+servoaval = incdec("Servo A (Fork):", servoapos, "9", "0", 5, 0, 4, 1, 4, 0, 180)
+servobval = incdec("Servo B (Flip):", servobpos, "-", "=", 5, 0, 5, 1, 5, 0, 180)
+servocval = incdeg("Servo C (Lift):", servocpos, "[", "]", 5, 0, 6, 1, 6, 0, 180)
+motdval = incdeg("Stepper D:", motdangle, ",", ".", 3, 0, 7, 1, 7, 0, 360)
 
 def printresults(event):
     global xtarget, ytarget, bendpreference, basetarget, servoapos, servobpos, motdangle, servocpos, liftmode, xymode
     print("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(xtarget, ytarget, bendpreference, basetarget, 0, 0, mode, servoapos, servobpos, motdangle, xymode, liftmode, servocpos))
 
-
-root.bind("p",printresults)
-
-def zero():
+def zero(event):
     global xtarget, mode, motdangle, servobpos, servoapos, servocpos, basetarget, bendpreference, ytarget
     xtarget = 0
     ytarget = 249 * 2
     bendpreference = 1
     basetarget = 0
-    servoapos = 110 #opposite is 45 (Fork)
+    servoapos = 0 #opposite is 45 (Fork)
     servobpos = 180 #opposite is 20 (Flip)
     servobpos = 90
     motdangle = 0
     mode = 3
     updatearduinoregisters(0)
 
-zero = Button(root, text="Zero", command=zero, height=2, width=8, bg='navy blue', fg='white')
-zero.grid(row=9, column=2)
-
-root.bind("<Return>",updatearduinoregisters)
-
-
-def runnext():
+def runnext(event):
     global rawlast, xtarget, ytarget, bendpreference, basetarget, servoapos, servobpos, motdangle, xymode, liftmode, mode, servocpos
 
     rawlast = f.tell()
@@ -308,11 +145,8 @@ def runnext():
 
     updatearduinoregisters(0)
     root.update_idletasks()
-
-runnextbut = Button(root, text="Next", command=runnext, height=2, width=8, bg='green')
-runnextbut.grid(row=9, column=1)
     
-def checksequence():
+def checksequence(event):
     global stopping
     if(stopping == 0):
         modelocal = arduino.read_register(6)
@@ -324,24 +158,15 @@ def checksequence():
         arduino.write_register(6, 0)
         stopping = 0
 
-start = Button(root, text='Start', command=checksequence, height=2, width=8, bg='sky blue')
-start.grid(row=9, column=3)
-
-def stopmot():
+def stopmot(event):
     global stopping
     stopping = 1
 
-stop = Button(root, text='STOP', command=stopmot, height=2, width=8, bg='red')
-stop.grid(row=8, column=3)
+root.bind("<Tab>", runnext)
+root.bind("p",printresults)
+root.bind("z", zero)
+root.bind("<Shift-Tab>", checksequence)
+root.bind("<Space>", stopmot)
+root.bind("<Return>", updatearduinoregisters)
 
-#def encoders():
-    #encoderdeg = arduino.read_registers(12, 3)
-    #encoderadeg = encoderdeg[0]/100
-    #encoderbdeg = encoderdeg[1]/100
-    #encoderddeg = encoderdeg[2]/100
-    
-    #print("Encoder A: {}, B: {}, D: {}".format(encoderadeg, encoderbdeg, encoderddeg))
-    #root.after(1000, encoders)
-
-#root.after(1000, encoders)
 root.mainloop()

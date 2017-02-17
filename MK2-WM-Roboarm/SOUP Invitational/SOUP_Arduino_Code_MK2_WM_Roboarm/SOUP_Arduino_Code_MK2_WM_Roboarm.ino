@@ -25,7 +25,7 @@
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 #define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
-#define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
+#define dmotstpmode 4 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
@@ -358,14 +358,20 @@ void loop() {
     if(cstepdifference == 0) {
       readencodera();
       readencoderb();
-      readencoderd();
+      
       movemotora();
       movemotorb();
-      movemotord();
+      if(bstepdifference < dbstepperb && astepdifference < dbsteppera) {
+        readencoderd();
+        movemotord();
+      }
       moveservoa();
       moveservob();
       moveservoc();
     } 
+
+    
+    
     else {
       movemotorc();
     }
