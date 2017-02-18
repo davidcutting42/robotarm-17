@@ -25,9 +25,9 @@
 #define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
 #define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
 #define BSERVOMIN  100 // this is the 'minimum' pulse length count (out of 4096)
-#define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
-#define CSERVOMIN  300 // this is the 'minimum' pulse length count (out of 4096)
-#define CSERVOMAX  620 // this is the 'maximum' pulse length count (out of 4096)
+#define BSERVOMAX  610 // this is the 'maximum' pulse length count (out of 4096)
+#define CSERVOMIN  250 // this is the 'minimum' pulse length count (out of 4096)
+#define CSERVOMAX  700 // this is the 'maximum' pulse length count (out of 4096)
 
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
