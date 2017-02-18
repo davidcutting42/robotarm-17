@@ -137,8 +137,8 @@ long cstepcount = cdegreesstep(0);
 long dstepcount = ddegreesstep(0);
 
 // Minimum motor delay (time between steps)
-const unsigned long minmotadelay = 5000 / aratio * 2;
-const unsigned long minmotbdelay = 5000 / bratio * 2;
+const unsigned long minmotadelay = 5000 / aratio * 3;
+const unsigned long minmotbdelay = 5000 / bratio * 3;
 const unsigned long minmotcdelay = 10000 / cratio * 2;
 const unsigned long minmotddelay = 10000 / dratio;
 

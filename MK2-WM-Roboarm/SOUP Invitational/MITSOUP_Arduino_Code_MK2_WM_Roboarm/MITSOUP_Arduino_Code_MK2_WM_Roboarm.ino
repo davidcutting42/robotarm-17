@@ -10,10 +10,6 @@
  *  7               servapos            Master          Target position (degrees) of servo A
  *  8               servbpos            Master          Target position (degrees) of servo B
  *  9               motdangle           Master          Motor d target position (degrees)
- *  12              encoderadeg         Slave           Current angle outputted by encoder A
- *  13              encoderbdeg         Slave           Current angle outputted by encoder B
- *  14              encoderddeg         Slave           Current angle outputted by encoder D
- *  15              servcpos            Master          Target position (degrees) of servo B
  */
 
 #include "MyTypes.h"
@@ -26,15 +22,12 @@
 #define stpmode 8 // Sets the stepping mode of all 3 motors. Set to 1, 2, 4, 8, 16, or 32
 #define dmotstpmode 1
 
-#define ASERVOMIN  150 // this is the 'minimum' pulse length count (out of 4096)
-#define ASERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
-
-#define BSERVOMIN  50 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
+#define ASERVOMAX  550 // this is the 'maximum' pulse length count (out of 4096)
+#define BSERVOMIN  100 // this is the 'minimum' pulse length count (out of 4096)
 #define BSERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
-
 #define CSERVOMIN  300 // this is the 'minimum' pulse length count (out of 4096)
 #define CSERVOMAX  620 // this is the 'maximum' pulse length count (out of 4096)
-
 
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -129,9 +122,11 @@ int waypointselect = 0;
 
 int servoatargetcount = map(110, 0, 180, ASERVOMIN, ASERVOMAX);
 int servobtargetcount = map(180, 0, 180, BSERVOMIN, BSERVOMAX);
+int servoctargetcount = map(180, 0, 180, CSERVOMIN, CSERVOMAX);
 
 int servoacurrcount = 0;
 int servobcurrcount = 0;
+
 
 const unsigned long minservoadelay = 2000;
 const unsigned long minservobdelay = 1000;
@@ -221,6 +216,7 @@ void setup() {
   
   pwm.setPWM(1, 0, map(120, 0, 180, ASERVOMIN, ASERVOMAX));
   pwm.setPWM(0, 0, map(180, 0, 180, BSERVOMIN, BSERVOMAX));
+  pwm.setPWM(2, 0, map(180, 0, 180, CSERVOMIN, CSERVOMAX));
   delay(100);
 }
 
@@ -229,25 +225,7 @@ void setup() {
 /////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  //stepdifferenceall = astepdifference + bstepdifference + cstepdifference + dstepdifference;
- 
   slave.poll( au16data, 12 );
-  
-  /*
-  if(au16data[6] == 1) {
-    if (steppersdone() && servosdone()) {
-      if(waypointselect >= 13) {
-        au16data[6] = 0;
-      }
-      else {
-        inversekinematics(wp[waypointselect]);
-        waypointselect++; 
-        delay(500);
-      }
-    }
-    movemotors();
-  }
-  */
   
   if(au16data[6] == 2) {
     if(getstream == 0) { 
@@ -266,6 +244,7 @@ void loop() {
       target.y -= 1000;
       target.dangle -= 1000;
       inversekinematics(target);
+      pwm.setPWM(2, 0, servoctargetcount);
       getstream = 1;
     }
     movemotors();
@@ -478,6 +457,7 @@ void movemotors() {
           servoaswitch = 0;
         } 
         pwm.setPWM(1, 0, servoacurrcount);
+        
         servoatimer = micros();
       }
       break;
@@ -647,6 +627,7 @@ void inversekinematics(waypoint target) {
   
   servoatargetcount = map(target.saangle, 0, 180, ASERVOMIN, ASERVOMAX);
   servobtargetcount = map(target.sbangle, 0, 180, BSERVOMIN, BSERVOMAX);
+  servoctargetcount = map(target.saangle, 0, 180, CSERVOMIN, CSERVOMAX);
 
   motadelay = target.actiontypexy ? minmotadelay : minmotadelay * 5;
   motbdelay = target.actiontypexy ? minmotbdelay : minmotbdelay * 5;
