@@ -303,7 +303,7 @@ void setup() {
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
   encoderb.setClockWise(true);
-  encoderd.setClockWise(false);
+  encoderd.setClockWise(true);
 
   noInterrupts(); // disable all interrupts
   TCNT3 = 0;
