@@ -44,12 +44,12 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(); // Construct servo cont
 // Encoder Zero Positions, attained from zeroing code.
 const float azero = 4918-4096;
 const float bzero = 10642;
-const float dzero = 1410;
+//const float dzero = 1410;
 
 // Construct encoder objects
 AMS_AS5048B encodera(0x44);
 AMS_AS5048B encoderb(0x48);
-AMS_AS5048B encoderd(0x4C);
+//AMS_AS5048B encoderd(0x4C);
 
 int mode = 0; // Mode variable - controls whether motors are moving, transmitted to raspberry pi as a check to make sure motors have reached target before continuting to next waypoint
 
@@ -106,6 +106,7 @@ long dstepdifference = 0;
 
 // Direction of stepper motors, used to calculate the current absolute position of the motor.
 int cstepdirection = 0;
+int dstepdirection = 0;
 
 // Switch case variables that control whether steppers are idle or stepping.
 int astepswitch = 0;
@@ -115,6 +116,7 @@ int dstepswitch = 0;
 
 // Timer (microseconds) that controls the pulselength of the stepper motors in the switch cases.
 unsigned long cstepswitchtimer = 0;
+unsigned long dstepswitchtimer = 0;
 
 // Ratio for number of steps of motor to number of degrees of joint based on gearing and pulley ratios
 const float aratio = 200.0 * 32 / 10 * stpmode / 360.0;
@@ -298,12 +300,12 @@ void setup() {
   // Start encoder communication
   encodera.begin();
   encoderb.begin();
-  encoderd.begin(); 
+  //encoderd.begin(); 
 
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
   encoderb.setClockWise(true);
-  encoderd.setClockWise(false);
+  //encoderd.setClockWise(false);
 
   noInterrupts(); // disable all interrupts
   TCNT3 = 0;
@@ -317,12 +319,6 @@ void setup() {
   TCCR4B = 0;
   TCCR4B |= (1 << CS41)|(1 << WGM42);    // 8 prescaler (gives about 33 ms max range) 
   TIMSK4 &= (~(1 << OCIE4A));   // disable timer overflow interrupt
-  
-  TCNT5 = 0;
-  TCCR5A = 0;
-  TCCR5B = 0;
-  TCCR5B |= (1 << CS51)|(1 << WGM52);    // 8 prescaler (gives about 33 ms max range) 
-  TIMSK5 &= (~(1 << OCIE5A));   // disable timer overflow interrupt
   interrupts();             // enable all interrupts
 }
 
@@ -362,7 +358,6 @@ void loop() {
       movemotora();
       movemotorb();
       if(bstepdifference < dbstepperb && astepdifference < dbsteppera) {
-        readencoderd();
         movemotord();
       }
       moveservoa();
@@ -435,6 +430,7 @@ inline void readencoderb() {
   bstepdifference = abs(bstepcount - stepperBtarget);
 }
 
+/*
 inline void readencoderd() {  
   //noInterrupts();
   jointdcurrent = encoderd.angleR(U_RAW) - dzero;
@@ -449,7 +445,7 @@ inline void readencoderd() {
   holdingRegs[mb_encoderddeg] = jointdcurrent*100;
   dstepdifference = abs(dstepcount - stepperDtarget);
 }
-
+*/
 /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// MOVE MOTORS //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
@@ -523,12 +519,39 @@ inline void movemotorc() {
 ////////////////////////////// MOVE MOTOR D /////////////////////////////////////
 
 inline void movemotord() {
-  if ((dstepswitch == 0) && (dstepdifference > dbstepperd)) {
-    dstepswitch = 1;
-    setddirection();
-    TCNT5 = 0;
-    OCR5A = 0; // Jump immediately to ISR (preloading timer)
-    TIMSK5 |= (1 << OCIE5A);   // enable timer overflow interrupt
+  switch (dstepswitch) {
+    case 0:
+      if (dstepdifference != 0) {
+        dstepswitch = 1;
+        dstepswitchtimer = micros();
+      }
+      break;
+    case 1:
+      if(micros() >= (dstepswitchtimer + motddelay)) {
+        digitalWrite(dstep, LOW);
+        dstepswitchtimer = micros();
+        dstepswitch = 2;
+      }
+      break;
+    case 2:
+      if(micros() >= (dstepswitchtimer + motddelay)) {
+        digitalWrite(dstep, HIGH);
+        dstepswitchtimer = micros();
+        if(dstepdirection == 0) {
+          dstepcount--;
+        }
+        else if(dstepdirection == 1) {
+          dstepcount++;
+        }
+        dstepdifference--;
+        if(dstepdifference == 0) {
+          dstepswitch = 0;
+        }
+        else {
+          dstepswitch = 1;
+        }
+      }
+      break;
   }
 }
 
@@ -716,6 +739,20 @@ void inversekinematics(waypoint target) {
   servoadelay = target.actiontypeservos ? minservoadelay : minservoadelay * 5;
   servobdelay = target.actiontypeservos ? minservobdelay : minservobdelay * 5;
   servocdelay = target.actiontypeservos ? minservocdelay : minservocdelay * 5;
+
+  if(stepperDtarget < dstepcount) {
+    digitalWrite(ddir, HIGH);
+    dstepdirection = 0;
+    dstepdifference = dstepcount - stepperDtarget; 
+  }
+  else if(stepperDtarget > dstepcount) {
+    digitalWrite(ddir, LOW);
+    dstepdirection = 1;
+    dstepdifference = stepperDtarget - dstepcount;
+  }
+  else {
+    dstepdifference = 0;  
+  }
 }
 
 inline float astepdegrees(long steps) {
@@ -866,29 +903,6 @@ ISR(TIMER4_COMPA_vect)        // interrupt service routine
         else if(motbdelayramp < maxmotbdelay && bstepdifference < bdecrementcount) {
           motbdelayramp += motbdelaydecrement;
         }
-      }
-      break;
-  }
-}
-
-ISR(TIMER5_COMPA_vect)        // interrupt service routine 
-{
-  OCR5A = (2 * motddelay) - 1;   //compare match register = [ 16,000,000Hz/ (prescaler * desired interrupt frequency) ] - 1
-  
-  switch (dstepswitch) {
-    case 1:
-      digitalWrite(dstep, LOW);
-      dstepswitch = 2;
-      break;
-    case 2:
-      setddirection();
-      digitalWrite(dstep, HIGH);
-      if(dstepdifference < dbstepperd) {
-        TIMSK5 &= (~(1 << OCIE5A));   // disable timer overflow interrupt
-        dstepswitch = 0;
-      }
-      else {
-        dstepswitch = 1;
       }
       break;
   }
