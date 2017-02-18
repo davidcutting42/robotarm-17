@@ -25,7 +25,7 @@
 #include <ams_as5048b.h> // Library that communicates with encoders (uses Wire)
 
 #define stpmode 8 // Sets the stepping mode of all 3 motors which have chips on the main arduino shield. Set to 1, 2, 4, 8, 16, or 32
-#define dmotstpmode 4 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
+#define dmotstpmode 1 // Sets the stepping mode of the D motor. Change based on hardware selection to 1, 2, 4, 8, 16, or 32.
 
 // Set minimum and maximum pulse lengths for A servo and B servo. Need to be tuned to get proper sweep for servo.
 #define ASERVOMIN  215 // this is the 'minimum' pulse length count (out of 4096)
@@ -212,7 +212,7 @@ long stepperDtarget;
 // Deadband constants for each encodered motor
 const int dbsteppera = adegreesstep(1);
 const int dbstepperb = bdegreesstep(1);
-const int dbstepperd = cdegreesstep(1);
+const int dbstepperd = cdegreesstep(2.5);
 
 void setup() {
   // Set up each stepper motor control pin to an output
@@ -303,7 +303,7 @@ void setup() {
   // Set encoders to ccw or clockwise (false = ccw, true = cw)
   encodera.setClockWise(false);
   encoderb.setClockWise(true);
-  encoderd.setClockWise(true);
+  encoderd.setClockWise(false);
 
   noInterrupts(); // disable all interrupts
   TCNT3 = 0;
@@ -436,6 +436,7 @@ inline void readencoderb() {
 }
 
 inline void readencoderd() {  
+  //noInterrupts();
   jointdcurrent = encoderd.angleR(U_RAW) - dzero;
   while(jointdcurrent > 16384) {
     jointdcurrent -= 16384;
