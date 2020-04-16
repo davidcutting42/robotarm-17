@@ -1,5 +1,5 @@
-﻿# WM-Roboarm
-This repository is the main repository for David Cutting's Ward Melville Science Olympiad Robot Arm. All code is written by David Cutting unless otherwise noted. 
+﻿# robotarm-17
+David Cutting's Ward Melville Science Olympiad robot arms.
 
 (C) 2016-2017 David Cutting
 
